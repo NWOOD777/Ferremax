@@ -1,144 +1,10 @@
 <!DOCTYPE html>
+{% load static %}
 <html lang="es">
 <head>
     <meta charset="UTF-8">
     <title>Panel de Administración - Pedidos</title>
-    <style>
-        body {
-            margin: 0;
-            font-family: Arial, sans-serif;
-            background: #f8f8f8;
-        }
-        .sidebar {
-            height: 100vh;
-            width: 200px;
-            position: fixed;
-            top: 0;
-            left: 0;
-            background: #222;
-            padding-top: 30px;
-            transition: width 0.3s;
-            overflow: hidden;
-        }
-        .sidebar.minimized {
-            width: 40px;
-        }
-        .sidebar a {
-            display: block;
-            color: #fff;
-            padding: 15px 25px;
-            text-decoration: none;
-            transition: background 0.2s;
-            white-space: nowrap;
-        }
-        .sidebar a:hover {
-            background: #444;
-        }
-        .sidebar.minimized a {
-            padding: 15px 10px;
-            text-align: center;
-            font-size: 0;
-        }
-        .sidebar.minimized a::before {
-            content: attr(data-short);
-            font-size: 18px;
-        }
-        .toggle-btn {
-            position: absolute;
-            top: 10px;
-            right: -18px;
-            width: 36px;
-            height: 36px;
-            background: #444;
-            color: #fff;
-            border-radius: 50%;
-            border: none;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 2;
-            transition: transform 0.3s;
-            font-size: 2rem;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-        }
-        .main-content {
-            margin-left: 210px;
-            padding: 20px;
-            transition: margin-left 0.3s;
-        }
-        .sidebar.minimized ~ .main-content {
-            margin-left: 50px;
-        }
-        .user-icon-container {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            margin-bottom: 20px;
-        }
-        .user-icon {
-            width: 60px;
-            height: 60px;
-            border-radius: 50%;
-            background: #fff;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-bottom: 8px;
-            border: 2px solid #888;
-        }
-        .user-icon svg {
-            width: 40px;
-            height: 40px;
-            fill: #222;
-        }
-        .sidebar.minimized .user-icon {
-            width: 32px;
-            height: 32px;
-        }
-        .sidebar.minimized .user-icon svg {
-            width: 20px;
-            height: 20px;
-        }
-        table {
-            width: 90%;
-            border-collapse: collapse;
-            margin: 30px auto 0 auto;
-            background: #fff;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.07);
-        }
-        th, td {
-            border: 1px solid #ccc;
-            padding: 10px 8px;
-            text-align: center;
-        }
-        th {
-            background: #f2f2f2;
-        }
-        h1 {
-            text-align: center;
-            margin-top: 0;
-        }
-        ul {
-            margin: 0;
-            padding-left: 18px;
-            text-align: left;
-        }
-        @media (max-width: 900px) {
-            .main-content {
-                margin-left: 0;
-                padding: 5px;
-            }
-            .sidebar {
-                position: static;
-                width: 100%;
-                height: auto;
-            }
-            table {
-                width: 100%;
-            }
-        }
-    </style>
+    <link rel="stylesheet" href="{% static 'css/pedidos.css' %}">
 </head>
 <body>
     <div class="sidebar" id="sidebar">
@@ -152,9 +18,9 @@
                 </svg>
             </div>
         </div>
-        <a href="#" data-short="D">Regresar</a>
-        <a href="#" data-short="P">Ver perfil</a>
-        <a href="#" data-short="R">Ver registro</a>
+        <a href="#" data-short="R">Regresar</a>
+        <a href="#" data-short="V">Ver perfil</a>
+        <a href="#" data-short="V">Ver registro</a>
     </div>
     <div class="main-content" id="mainContent">
         <h1>Panel de Administración - Pedidos</h1>

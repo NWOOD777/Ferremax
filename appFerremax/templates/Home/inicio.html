@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Iniciar Sesión</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="{% static 'css/inicio.css' %}">
+</head>
+<body>
+    <div class="login-container">
+        <div class="login-icon">
+            <!-- User SVG Icon -->
+            <svg viewBox="0 0 64 64">
+                <circle cx="32" cy="24" r="16"/>
+                <ellipse cx="32" cy="52" rx="20" ry="12"/>
+            </svg>
+        </div>
+        <h2>Iniciar Sesión</h2>
+        <form method="post">
+            {% csrf_token %}
+            <label for="username">Usuario</label>
+            <input type="text" id="username" name="username" required>
+
+            <label for="password">Contraseña</label>
+            <input type="password" id="password" name="password" required>
+
+            <button type="submit">Ingresar</button>
+        </form>
+        <div class="forgot-password">
+            <a href="#">¿Olvidaste tu contraseña?</a>
+        </div>
+    </div>
+</body>
+</html>
