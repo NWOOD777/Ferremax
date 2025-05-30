@@ -1,4 +1,6 @@
 from django.shortcuts import render
+from django.http import HttpResponse
+from .models import Cargo
 
 # Create your views here.
 def index(request):
@@ -12,3 +14,11 @@ def pedidos(request):
 
 def pagos(request):
     return render(request, 'Home/pagos.html')
+
+def bodeguero(request):
+    return render(request, 'Home/bodeguero.html')
+
+def mostrar_cargo(request):
+    cargo = Cargo.objects.all()
+    cargos_list = ', '.join([str(c) for c in cargo])
+    return HttpResponse(f"Cargo creado: {cargos_list}")

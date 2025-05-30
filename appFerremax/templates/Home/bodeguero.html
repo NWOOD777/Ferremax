@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+{% load static %} 
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Panel Bodeguero - Órdenes de Pedido</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+    <style>
+        .sidebar {
+            width: 240px;
+            height: 100vh;
+            position: fixed;
+            top: 0;
+            left: 0;
+            background: #343a40;
+            color: #fff;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding-top: 32px;
+        }
+        .sidebar .page-title {
+            font-size: 1.3rem;
+            font-weight: bold;
+            margin-bottom: 32px;
+            letter-spacing: 1px;
+        }
+        .sidebar .user-icon {
+            font-size: 4rem;
+            margin-bottom: 12px;
+        }
+        .sidebar .username {
+            font-size: 1.1rem;
+            font-weight: 500;
+        }
+        .main-content {
+            margin-left: 240px;
+            padding: 32px 16px 16px 16px;
+        }
+    </style>
+</head>
+<body>
+<div class="sidebar">
+    <div class="page-title">Bodeguero</div>
+    <i class="bi bi-person-circle user-icon"></i>
+    <div class="username">Juan Pérez</div>
+</div>
+<div class="main-content">
+    <div class="container mt-4">
+        <h1 class="mb-4">Órdenes de Pedido</h1>
+        <table class="table table-bordered">
+            <thead>
+                <tr>
+                    <th># Orden</th>
+                    <th>Cliente</th>
+                    <th>Productos</th>
+                    <th>Estado</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- Ejemplo de orden, reemplazar con datos dinámicos -->
+                <tr>
+                    <td>00123</td>
+                    <td>Juan Pérez</td>
+                    <td>
+                        <ul>
+                            <li>Martillo x2</li>
+                            <li>Clavos x1 caja</li>
+                            <button class="btn btn-outline-danger btn-sm">Vaciar Carro</button>
+                        </ul>
+                    </td>
+                    <td><span class="badge bg-warning">Pendiente</span></td>
+                    <td>
+                        <button class="btn btn-success btn-sm">Aceptar</button>
+                        <button class="btn btn-primary btn-sm">Preparar</button>
+                        <button class="btn btn-info btn-sm">Registrar Entrega</button>
+                    </td>
+                </tr>
+                <!-- Más órdenes aquí -->
+
+                <!-- Ejemplo de otra orden -->
+                <tr>
+                    <td>00124</td>
+                    <td>María López</td>
+                    <td>
+                        <ul class="mb-2">
+                            <li>Destornillador x1</li>
+                            <li>Tornillos x3 cajas</li>
+                        </ul>
+                        <button class="btn btn-outline-danger btn-sm">Vaciar Carro</button>
+                    </td>
+                    <td><span class="badge bg-success">Preparado</span></td>
+                    <td>
+                        <button class="btn btn-success btn-sm">Aceptar</button>
+                        <button class="btn btn-primary btn-sm">Preparar</button>
+                        <button class="btn btn-info btn-sm">Registrar Entrega</button>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+<script>
+    // Aquí puedes agregar scripts para manejar los botones (Aceptar, Preparar, Registrar Entrega)
+    // Por ejemplo, usando fetch para enviar solicitudes al backend.
+</script>
+</body>
+</html>
