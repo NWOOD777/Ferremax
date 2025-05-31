@@ -9,7 +9,7 @@ Sigue estos pasos para ejecutar el proyecto en tu computador:
 ### 1. Clona el repositorio
 
 ```bash
-git clone https://github.com/TU_USUARIO/Ferremax.git
+git clone https://github.com/NWOOD777/Ferremax.git
 cd Ferremax
 ```
 
