@@ -39,19 +39,14 @@ python manage.py migrate
 ```
 Esto creará todas las tablas y cargará automáticamente las comunas y cargos necesarios para la aplicación.
 
-### 5. (Opcional) Crea un superusuario para acceder al panel de administración
 
-```bash
-python manage.py createsuperuser
-```
-
-### 6. Ejecuta el servidor de desarrollo
+### 5. Ejecuta el servidor de desarrollo
 
 ```bash
 python manage.py runserver
 ```
 
-### 7. Accede a la aplicación
+### 6. Accede a la aplicación
 
 Abre tu navegador y visita:  
 [http://127.0.0.1:8000/](http://127.0.0.1:8000/)
