@@ -53,22 +53,6 @@ Abre tu navegador y visita:
 
 ---
 
-## 📁 Estructura del proyecto
-
-- `PaginaFerremax/` - Configuración principal del proyecto Django
-- `appFerremax/` - Aplicación principal (modelos, vistas, templates, migraciones, etc.)
-- `requirements.txt` - Dependencias del proyecto
-
-## ⚠️ Notas importantes
-
-- **No subas el archivo `db.sqlite3`** al repositorio. Este proyecto usa Oracle, no SQLite.
-- Los datos de comunas y cargos se cargan automáticamente al ejecutar las migraciones.
-- Si necesitas recargar comunas y cargos, ejecuta nuevamente las migraciones o consulta el admin de Django.
-- Si usas archivos estáticos personalizados, ejecuta:
-  ```bash
-  python manage.py collectstatic
-  ```
-
 ## 📞 Soporte
 
 ¿Dudas o problemas? Contacta al equipo de desarrollo o abre un issue en este repositorio.
