@@ -32,43 +32,26 @@ source venv/bin/activate
 pip install -r requirements.txt
 ```
 
-### 4. Configura la base de datos Oracle
-
-Edita el archivo `PaginaFerremax/settings.py` y asegúrate de que la sección `DATABASES` tenga tus datos de conexión a Oracle:
-
-```python
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.oracle',
-        'NAME': 'orcl',  # o el nombre de tu servicio
-        'USER': 'BDFerremas',
-        'PASSWORD': 'BDFerremas',
-        'HOST': 'localhost',
-        'PORT': '1521',
-    }
-}
-```
-
-### 5. Aplica las migraciones para crear la base de datos y cargar datos iniciales
+### 4. Aplica las migraciones para crear la base de datos y cargar datos iniciales
 
 ```bash
 python manage.py migrate
 ```
 Esto creará todas las tablas y cargará automáticamente las comunas y cargos necesarios para la aplicación.
 
-### 6. (Opcional) Crea un superusuario para acceder al panel de administración
+### 5. (Opcional) Crea un superusuario para acceder al panel de administración
 
 ```bash
 python manage.py createsuperuser
 ```
 
-### 7. Ejecuta el servidor de desarrollo
+### 6. Ejecuta el servidor de desarrollo
 
 ```bash
 python manage.py runserver
 ```
 
-### 8. Accede a la aplicación
+### 7. Accede a la aplicación
 
 Abre tu navegador y visita:  
 [http://127.0.0.1:8000/](http://127.0.0.1:8000/)
