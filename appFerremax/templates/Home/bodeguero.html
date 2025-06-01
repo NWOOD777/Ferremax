@@ -1,50 +1,19 @@
 <!DOCTYPE html>
-{% load static %} 
+
 <html lang="es">
 <head>
     <meta charset="UTF-8">
     <title>Panel Bodeguero - Órdenes de Pedido</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
+     {% load static %}
+    <link rel="stylesheet" href="{% static 'CSS/bodeguero.css' %}">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
-    <style>
-        .sidebar {
-            width: 240px;
-            height: 100vh;
-            position: fixed;
-            top: 0;
-            left: 0;
-            background: #343a40;
-            color: #fff;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            padding-top: 32px;
-        }
-        .sidebar .page-title {
-            font-size: 1.3rem;
-            font-weight: bold;
-            margin-bottom: 32px;
-            letter-spacing: 1px;
-        }
-        .sidebar .user-icon {
-            font-size: 4rem;
-            margin-bottom: 12px;
-        }
-        .sidebar .username {
-            font-size: 1.1rem;
-            font-weight: 500;
-        }
-        .main-content {
-            margin-left: 240px;
-            padding: 32px 16px 16px 16px;
-        }
-    </style>
 </head>
 <body>
 <div class="sidebar">
     <div class="page-title">Bodeguero</div>
     <i class="bi bi-person-circle user-icon"></i>
     <div class="username">Juan Pérez</div>
+    <a href="{% url 'inicio' %}" class="logout-link">Cerrar sesión</a>
 </div>
 <div class="main-content">
     <div class="container mt-4">
@@ -105,6 +74,30 @@
 <script>
     // Aquí puedes agregar scripts para manejar los botones (Aceptar, Preparar, Registrar Entrega)
     // Por ejemplo, usando fetch para enviar solicitudes al backend.
+
+    // Cambia el estado de la orden según el botón presionado
+    document.querySelectorAll('tbody tr').forEach(function(row) {
+        const estadoSpan = row.querySelector('td:nth-child(4) span');
+        const aceptarBtn = row.querySelector('.btn-success');
+        const prepararBtn = row.querySelector('.btn-primary');
+        const entregarBtn = row.querySelector('.btn-info');
+
+        aceptarBtn.addEventListener('click', function() {
+            estadoSpan.textContent = 'Preparado';
+            estadoSpan.className = 'badge bg-success';
+        });
+
+        prepararBtn.addEventListener('click', function() {
+            estadoSpan.textContent = 'En Entrega';
+            estadoSpan.className = 'badge bg-info';
+        });
+
+        entregarBtn.addEventListener('click', function() {
+            estadoSpan.textContent = 'Entregado';
+            estadoSpan.className = 'badge bg-secondary';
+        });
+    });
 </script>
 </body>
-</html>
+
+</html> 

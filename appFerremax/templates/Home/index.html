@@ -1,5 +1,4 @@
 <!DOCTYPE html>
-{% load static %}
 <html lang="en">
 
 <head>
@@ -100,6 +99,69 @@
     </div>
   </div>
 
+  <div class="offcanvas offcanvas-end" data-bs-scroll="true" tabindex="-1" id="offcanvasCart" aria-labelledby="My Cart">
+    <div class="offcanvas-header justify-content-center">
+      <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+    </div>
+    <div class="offcanvas-body">
+      <div class="order-md-last">
+        <h4 class="d-flex justify-content-between align-items-center mb-3">
+          <span class="text-primary">Your cart </span>
+          <span class="badge bg-primary rounded-pill">3</span>
+        </h4>
+        <ul class="list-group mb-3">
+          <li class="list-group-item d-flex justify-content-between lh-sm">
+            <div>
+              <h6 class="my-0">Growers cider</h6>
+              <small class="text-body-secondary">Brief description</small>
+            </div>
+            <span class="text-body-secondary">$12</span>
+          </li>
+          <li class="list-group-item d-flex justify-content-between lh-sm">
+            <div>
+              <h6 class="my-0">Fresh grapes</h6>
+              <small class="text-body-secondary">Brief description</small>
+            </div>
+            <span class="text-body-secondary">$8</span>
+          </li>
+          <li class="list-group-item d-flex justify-content-between lh-sm">
+            <div>
+              <h6 class="my-0">Heinz tomato ketchup</h6>
+              <small class="text-body-secondary">Brief description</small>
+            </div>
+            <span class="text-body-secondary">$5</span>
+          </li>
+          <li class="list-group-item d-flex justify-content-between">
+            <span>Total (USD)</span>
+            <strong>$20</strong>
+          </li>
+        </ul>
+
+        <button class="w-100 btn btn-primary btn-lg" type="submit">Continue to checkout</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="offcanvas offcanvas-end" data-bs-scroll="true" tabindex="-1" id="offcanvasSearch"
+    aria-labelledby="Search">
+    <div class="offcanvas-header justify-content-center">
+      <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+    </div>
+    <div class="offcanvas-body">
+      <div class="order-md-last">
+        <h4 class="d-flex justify-content-between align-items-center mb-3">
+          <span class="text-primary">Search</span>
+        </h4>
+        <form role="search" action="index.html" method="get" class="d-flex mt-3 gap-0">
+          <input class="form-control rounded-start rounded-0 bg-light" type="email"
+            placeholder="What are you looking for?" aria-label="What are you looking for?">
+          <button class="btn btn-dark rounded-end rounded-0" type="submit">Search</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+
   <header>
     <div class="container-fluid">
       <div class="row py-3 border-bottom">
@@ -129,6 +191,7 @@
           </div>
         </div>
 
+
         <div
           class="col-sm-8 col-lg-4 d-flex justify-content-end gap-5 align-items-center mt-4 mt-sm-0 justify-content-center justify-content-sm-end">
           <div class="support-box text-end d-none d-xl-block">
@@ -136,17 +199,46 @@
             <h5 class="mb-0">+56974932963</h5>
           </div>
 
+
+
+          <div class="cart position-relative me-3">
+            <button class="border-0 bg-transparent" type="button" id="cartBtn" data-bs-toggle="offcanvas" data-bs-target="#offcanvasCart" aria-controls="offcanvasCart">
+              <svg width="32" height="32" viewBox="0 0 24 24">
+                <use xlink:href="#cart"></use>
+              </svg>
+              <span id="cart-count" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="font-size: 0.8rem;">
+                0
+              </span>
+            </button>
+          </div>
+        
+
           <ul class="nav">
             <li class="nav-item">
+              {% if nombre_cliente %}
+              <span class="nav-link rounded-circle bg-light p-2 mx-1" style="cursor:default;">
+                <svg width="24" height="24" viewBox="0 0 24 24">
+                  <use xlink:href="#user"></use>
+                </svg>
+                <span class="ms-2">{{ nombre_cliente }}</span>
+              </span>
+              {% else %}
               <a class="nav-link rounded-circle bg-light p-2 mx-1" href="{% url 'inicio' %}" title="Iniciar sesión">
                 <svg width="24" height="24" viewBox="0 0 24 24">
                   <use xlink:href="#user"></use>
-                  </svg>
-                  <span class="ms-2">Iniciar sesión</span>
                 </svg>
+                <span class="ms-2">Iniciar sesión</span>
               </a>
+              {% endif %}
             </li>
           </ul>
+
+          
+
+
+
+        </div>
+
       </div>
     </div>
     <div class="container-fluid">
@@ -856,29 +948,34 @@
 
   <section class="py-5">
     <div class="container-fluid">
-      <div class="row g-4">
+      <div class="row">
 
-        <div class="col-md-6 d-flex align-items-stretch">
-          <div class="banner-ad bg-secondary w-100 d-flex flex-column justify-content-center"
-            style="background: url('static/assets/images/ad-image-3.png') no-repeat right bottom;">
-            <div class="banner-content p-5 text-center text-md-start">
-              <div class="categories fs-3 fw-bold" style="color: #FFFF00 ;">Descuento 35% Off</div>
+        <div class="col-md-6">
+          <div class="banner-ad bg-danger mb-3"
+            style="background: url('static/assets/images/ad-image-3.png');background-repeat: no-repeat;background-position: right bottom;">
+            <div class="banner-content p-5">
+
+              <div class="categories text-primary fs-3 fw-bold">descuento 23% Off</div>
               <h3 class="banner-title">Promoción general en Marcas Nuevas</h3>
               <p>Martillos, taladros, llaves y todo lo que necesita tu caja de herramientas.</p>
               <a href="#" class="btn btn-dark text-uppercase">Ver Oferta</a>
+
             </div>
+
           </div>
         </div>
+        <div class="col-md-6">
+          <div class="banner-ad bg-info"
+            style="background: url('static/assets/images/ad-image-4.png');background-repeat: no-repeat;background-position: right bottom;">
+            <div class="banner-content p-5">
 
-        <div class="col-md-6 d-flex align-items-stretch">
-          <div class="banner-ad bg-secondary w-100 d-flex flex-column justify-content-center"
-            style="background: url('static/assets/images/ad-image-4.png') no-repeat left bottom;">
-            <div class="banner-content p-5 text-center text-md-start">
-              <div class="categories fs-3 fw-bold" style="color: #0d6efd;">Descuento 25% Off</div>
+              <div class="categories text-primary fs-3 fw-bold"> descuento 25% off</div>
               <h3 class="banner-title">Esenciales para el Hogar</h3>
               <p>Clavos, tornillos, cintas y todo lo que necesitas en casa</p>
               <a href="#" class="btn btn-dark text-uppercase">Ver Ahora</a>
+
             </div>
+
           </div>
         </div>
 
@@ -886,7 +983,6 @@
     </div>
   </section>
 
-  
 
   <section class="py-5">
     <div class="container-fluid">
@@ -961,7 +1057,7 @@
               </div>
               <div class="post-header">
                 <h3 class="post-title">
-                  <a href="#" class="text-decoration-none">Top 10 sogas</a>
+                  <a href="#" class="text-decoration-none">Top 10 casual look ideas to dress up your kids</a>
                 </h3>
                 <p>Lorem ipsum dolor sit amet, consectetur adipi elit. Aliquet eleifend viverra enim tincidunt donec
                   quam. A in arcu, hendrerit neque dolor morbi...</p>
@@ -987,7 +1083,7 @@
               </div>
               <div class="post-header">
                 <h3 class="post-title">
-                  <a href="#" class="text-decoration-none">El mejor calefon</a>
+                  <a href="#" class="text-decoration-none">How to choose the best power tools for your needs</a>
                 </h3>
                 <p>Lorem ipsum dolor sit amet, consectetur adipi elit. Aliquet eleifend viverra enim tincidunt donec
                   quam. A in arcu, hendrerit neque dolor morbi...</p>
@@ -999,7 +1095,7 @@
           <article class="post-item card border-0 shadow-sm p-3">
             <div class="image-holder zoom-effect">
               <a href="#">
-                <img src="static/assets/images/imagenes_ferremas/palaespadon.png" alt="post" class="card-img-top">
+                <img src="static/assets/images/imagenes_ferremas/barrehojas.png" alt="post" class="card-img-top">
               </a>
             </div>
             <div class="card-body">
@@ -1013,7 +1109,7 @@
               </div>
               <div class="post-header">
                 <h3 class="post-title">
-                  <a href="#" class="text-decoration-none">Mejor pala del mundo vale 20mil dolales</a>
+                  <a href="#" class="text-decoration-none">The ultimate guide to home improvement</a>
                 </h3>
                 <p>Lorem ipsum dolor sit amet, consectetur adipi elit. Aliquet eleifend viverra enim tincidunt donec
                   quam. A in arcu, hendrerit neque dolor morbi...</p>
@@ -1096,17 +1192,15 @@
 
       <div class="row">
         <div class="col-12 text-center py-4">
-          <p class="mb-0">&copy; 2023 Ferremas. Todos los derechos reservados.</p>
+          <p class="mb-0">&copy; 2023 FoodMart. Todos los derechos reservados.</p>
         </div>
       </div>
     </div>
   </footer>
 
-  <!-- Script de bootstrap -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/js/bootstrap.bundle.min.js"
     integrity="sha384-ENjdO4Dr2bkBIFxQpeoA6DQD1KQkQ1p2eQ9uvj3DHzlA94l+I1P6tuKg3Gk2z04h"
-    crossorigin="anonymous">
-  </script>
+    crossorigin="anonymous"></script>
 </body>
 
 </html>

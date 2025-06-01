@@ -1,0 +1,125 @@
+/* Sidebar fija a la izquierda */
+.sidebar {
+    position: fixed;
+    left: 0;
+    top: 0;
+    width: 240px;
+    height: 100vh;
+    background: #212529;
+    color: #fff;
+    padding: 30px 20px 0 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    z-index: 1000;
+}
+
+.page-title {
+    font-size: 1.7rem;
+    font-weight: bold;
+    margin-bottom: 30px;
+}
+
+.user-icon {
+    font-size: 4rem;
+    margin-bottom: 10px;
+}
+
+.username {
+    font-size: 1.2rem;
+    margin-bottom: 20px;
+}
+
+/* Contenedor principal centrado y con fondo blanco */
+.main-content {
+    margin-left: 260px; /* espacio para la sidebar */
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    background: #f4f6f8;
+    padding: 40px 0;
+}
+
+.container {
+    background: #fff;
+    border-radius: 16px;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+    padding: 40px 32px;
+    min-width: 700px;
+    max-width: 900px;
+    width: 100%;
+}
+
+h1 {
+    font-family: 'Roboto', Arial, sans-serif;
+    font-weight: 700;
+    margin-bottom: 24px;
+}
+
+.table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 0;
+    background: transparent;
+}
+
+.table th, .table td {
+    padding: 12px 10px;
+    text-align: left;
+    border-bottom: 1px solid #e0e0e0;
+    font-size: 1rem;
+}
+
+.table th {
+    background: #f8f9fa;
+    font-weight: 700;
+}
+
+.badge {
+    padding: 6px 14px;
+    border-radius: 12px;
+    font-size: 0.95rem;
+}
+
+.bg-warning { background: #ffc107; color: #212529; }
+.bg-success { background: #28a745; color: #fff; }
+.bg-info { background: #17a2b8; color: #fff; }
+.bg-secondary { background: #6c757d; color: #fff; }
+
+.btn {
+    margin-right: 4px;
+    margin-bottom: 4px;
+    font-size: 0.95rem;
+    padding: 4px 10px;
+    border-radius: 6px;
+    border: none;
+    cursor: pointer;
+}
+
+.btn-sm { font-size: 0.92rem; padding: 3px 8px; }
+.btn-success { background: #28a745; color: #fff; }
+.btn-primary { background: #007bff; color: #fff; }
+.btn-info { background: #17a2b8; color: #fff; }
+.btn-outline-danger { background: #fff; color: #dc3545; border: 1px solid #dc3545; }
+
+ul { margin-bottom: 8px; }
+
+.logout-link {
+    margin-top: auto;
+    margin-bottom: 30px;
+    color: #fff;
+    background: #dc3545;
+    padding: 10px 24px;
+    border-radius: 8px;
+    text-decoration: none;
+    font-weight: bold;
+    transition: background 0.2s;
+    display: block;
+    width: 100%;
+    text-align: center;
+}
+.logout-link:hover {
+    background: #b52a37;
+    color: #fff;
+}

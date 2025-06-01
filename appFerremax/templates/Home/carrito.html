@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Carrito de Compras</title>
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'CSS/carrito.css' %}">
+</head>
+<body>
+    <h1>Carrito de Compras</h1>
+    {% if carrito %}
+        <ul>
+            {% for id, item in carrito.items %}
+                <li>
+                    {{ item.nombre }} - 
+                    <strong>Cantidad:</strong> {{ item.cantidad }} 
+                    <a href="{% url 'agregar_al_carrito' id %}" style="margin-left:8px;">+</a>
+                    <a href="{% url 'quitar_del_carrito' id %}" style="margin-left:4px;">-</a>
+                    <span style="margin-left:18px;"><strong>Precio:</strong> ${{ item.precio }}</span>
+                </li>
+            {% endfor %}
+        </ul>
+        <hr style="max-width:500px; margin:30px auto;">
+        <div style="max-width:500px; margin:0 auto 30px auto; background:#fff; padding:20px; border-radius:8px; box-shadow:0 2px 8px rgba(0,0,0,0.07);">
+            <h2>Método de Pago</h2>
+            <form action="{% url 'pagos' %}" method="get">
+                <label>
+                    <input type="radio" name="metodo_pago" value="tarjeta" required> Tarjeta de Crédito/Débito
+                </label><br>
+                <label>
+                    <input type="radio" name="metodo_pago" value="transferencia"> Transferencia Bancaria
+                </label><br>
+                <label>
+                    <input type="radio" name="metodo_pago" value="efectivo"> Pago en Efectivo
+                </label><br><br>
+                <button type="submit">Proceder al Pago</button>
+            </form>
+        </div>
+    {% else %}
+        <p>El carrito está vacío.</p>
+    {% endif %}
+    <a href="{% url 'index' %}">Seguir comprando</a>
+</body>
+</html>

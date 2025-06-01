@@ -56,7 +56,8 @@ class Cliente(models.Model):
     apellido_cliente = models.CharField(max_length=20)
     direccion = models.CharField(max_length=50)
     telefono_cliente = models.CharField(max_length=20)
-    correo = models.EmailField(unique=True, max_length=100)
+    correo = models.EmailField(unique=True, max_length=100, default='sincorreo@ejemplo.com')
+    contrasena = models.CharField(max_length=100)
 
     def __str__(self):
         return self.nombre_cliente

@@ -1,3 +1,8 @@
 BD
 User: BDFerremas
 Password: BDFerremas
+
+Superusuario
+Username: Admin
+Email: a93423828@gmail.com
+Password: Eladmin123
