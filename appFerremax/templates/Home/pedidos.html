@@ -1,11 +1,13 @@
 <!DOCTYPE html>
 {% load static %}
 <html lang="es">
+
 <head>
     <meta charset="UTF-8">
     <title>Panel de Administración - Pedidos</title>
     <link rel="stylesheet" href="{% static 'css/pedidos.css' %}">
 </head>
+
 <body>
     <div class="sidebar" id="sidebar">
         <button class="toggle-btn" id="toggleBtn">&#x25C0;</button>
@@ -13,14 +15,14 @@
             <div class="user-icon">
                 <!-- SVG de usuario -->
                 <svg viewBox="0 0 24 24">
-                    <circle cx="12" cy="8" r="4"/>
-                    <path d="M12 14c-5 0-7 2.5-7 4v2h14v-2c0-1.5-2-4-7-4z"/>
+                    <circle cx="12" cy="8" r="4" />
+                    <path d="M12 14c-5 0-7 2.5-7 4v2h14v-2c0-1.5-2-4-7-4z" />
                 </svg>
             </div>
         </div>
-        <a href="#" data-short="R">Regresar al inicio</a>
-        <a href="#" data-short="B">Bodegueros</a>
-        <a href="#" data-short="C">Contadores</a>
+        <a href="{% url 'index' %}" data-short="R">Regresar al inicio</a>
+        <a href="{% url 'crearproductos' %}" data-short="C">Crear Producto</a>
+        <a href="{% url 'mis_productos' %}" data-short="M">Mis Productos</a>
     </div>
     <div class="main-content" id="mainContent">
         <h1>Panel de Administración - Pedidos</h1>
@@ -37,39 +39,44 @@
                 </tr>
             </thead>
             <tbody>
+                {% if pedidos %}
+                {% for pedido in pedidos %}
                 <tr>
-                    <td>{{ pedido.id|default:"-" }}</td>
-                    <td>{{ pedido.cliente|default:"-" }}</td>
-                    <td>{{ pedido.fecha|default:"-" }}</td>
+                    <td>{{ pedido.id_pedido }}</td>
+                    <td>{{ pedido.cliente.nombre_cliente }} {{ pedido.cliente.apellido_cliente }}</td>
+                    <td>{{ pedido.fecha_pedido|date:"d/m/Y" }}</td>
                     <td>
-                        {% if pedido.productos %}
+                        {% if pedido.detalleproducto_set.all %}
                         <ul>
-                            {% for producto in pedido.productos %}
-                            <li>{{ producto.nombre|default:"Producto" }} (x{{ producto.cantidad|default:"1" }})</li>
+                            {% for detalle in pedido.detalleproducto_set.all %}
+                            <li>{{ detalle.producto.nombre_producto }} (x{{ detalle.cantidad }})</li>
                             {% endfor %}
                         </ul>
                         {% else %}
                         <span>-</span>
                         {% endif %}
                     </td>
-                    <td>{{ pedido.direccion|default:"-" }}</td>
-                    <td>${{ pedido.total|default:"0.00" }}</td>
-                    <td>{{ pedido.estado|default:"Pendiente" }}</td>
+                    <td>{{ pedido.cliente.direccion }}</td>
+                    <td>${{ pedido.total|floatformat:0 }}</td>
+                    <td>{{ pedido.estado_pedido }}</td>
                 </tr>
-               
+                {% endfor %}
+                {% else %}
                 <tr>
                     <td colspan="7">No hay pedidos registrados.</td>
                 </tr>
+                {% endif %}
             </tbody>
         </table>
     </div>
     <script>
         const sidebar = document.getElementById('sidebar');
         const toggleBtn = document.getElementById('toggleBtn');
-        toggleBtn.addEventListener('click', function() {
+        toggleBtn.addEventListener('click', function () {
             sidebar.classList.toggle('minimized');
             toggleBtn.innerHTML = sidebar.classList.contains('minimized') ? '&#x25B6;' : '&#x25C0;';
         });
     </script>
 </body>
+
 </html>

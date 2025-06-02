@@ -9,3 +9,19 @@
     height: 300px;
   }
 }
+
+.card-title {
+  white-space: normal;
+  word-break: break-word;
+  font-size: 1rem;
+  min-width: 0;
+}
+
+.card {
+  min-width: 180px;
+  max-width: 100%;
+}
+
+.add-to-cart {
+  width: 100%;
+}

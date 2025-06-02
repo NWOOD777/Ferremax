@@ -86,7 +86,10 @@ class Producto(models.Model):
     precio_unitario = models.DecimalField(max_digits=10, decimal_places=2)
     stock_total = models.IntegerField()
     sucursal = models.ForeignKey(Sucursal, on_delete=models.CASCADE)
-
+    imagen = models.ImageField(upload_to='productos/', null=True, blank=True)
+    creado_por = models.ForeignKey(Empleado, on_delete=models.SET_NULL, null=True, related_name='productos_creados')
+    fecha_creacion = models.DateTimeField(auto_now_add=True, null=True)
+    
     def __str__(self):
         return self.nombre_producto
 
@@ -101,11 +104,13 @@ class Producto(models.Model):
 
 class Pedido(models.Model):
     id_pedido = models.AutoField(primary_key=True)
-    fecha_pedido = models.DateField()
-    estado_pedido = models.CharField(max_length=20)
+    fecha_pedido = models.DateField(auto_now_add=True)
+    estado_pedido = models.CharField(max_length=20, default='Pendiente')
     tipo_entrega = models.CharField(max_length=20)
-    empleado = models.ForeignKey(Empleado, on_delete=models.CASCADE)
+    empleado = models.ForeignKey(Empleado, on_delete=models.CASCADE, null=True, blank=True)
     cliente = models.ForeignKey(Cliente, on_delete=models.CASCADE)
+    paypal_payment_id = models.CharField(max_length=100, null=True, blank=True)
+    total = models.DecimalField(max_digits=10, decimal_places=2, default=0)
 
     def __str__(self):
         return f"Pedido {self.id_pedido}"

@@ -7,38 +7,206 @@
     <link rel="stylesheet" href="{% static 'CSS/carrito.css' %}">
 </head>
 <body>
-    <h1>Carrito de Compras</h1>
-    {% if carrito %}
-        <ul>
-            {% for id, item in carrito.items %}
-                <li>
-                    {{ item.nombre }} - 
-                    <strong>Cantidad:</strong> {{ item.cantidad }} 
-                    <a href="{% url 'agregar_al_carrito' id %}" style="margin-left:8px;">+</a>
-                    <a href="{% url 'quitar_del_carrito' id %}" style="margin-left:4px;">-</a>
-                    <span style="margin-left:18px;"><strong>Precio:</strong> ${{ item.precio }}</span>
-                </li>
-            {% endfor %}
-        </ul>
-        <hr style="max-width:500px; margin:30px auto;">
-        <div style="max-width:500px; margin:0 auto 30px auto; background:#fff; padding:20px; border-radius:8px; box-shadow:0 2px 8px rgba(0,0,0,0.07);">
-            <h2>Método de Pago</h2>
-            <form action="{% url 'pagos' %}" method="get">
-                <label>
-                    <input type="radio" name="metodo_pago" value="tarjeta" required> Tarjeta de Crédito/Débito
-                </label><br>
-                <label>
-                    <input type="radio" name="metodo_pago" value="transferencia"> Transferencia Bancaria
-                </label><br>
-                <label>
-                    <input type="radio" name="metodo_pago" value="efectivo"> Pago en Efectivo
-                </label><br><br>
-                <button type="submit">Proceder al Pago</button>
-            </form>
+<div class="cart-container">
+    <h2>Carrito de Compras</h2>
+    <div id="cart-items-container"></div>
+</div>
+        
+    </div> <!-- cierre de .cart-container de los productos -->
+
+    <div class="cart-summary">
+        <div class="total-block">
+            <span>Total:</span>
+            <span class="total-price" id="totalPrice">$25.00</span>
         </div>
-    {% else %}
-        <p>El carrito está vacío.</p>
-    {% endif %}
-    <a href="{% url 'index' %}">Seguir comprando</a>
+        <div class="paypal-block">
+            <div id="paypal-button-container"></div>
+        </div>
+    </div>
+
+    <script src="https://www.paypal.com/sdk/js?client-id=AbdaK_ZgX-MH7UmJvqbCPJN0qmgV0KWjkkKmFnOypZdVqfu2Oh7bfNSceQ0kijnLLk9Nkc4ATu55K9eD&currency=USD"></script>
+  <script>
+    function actualizarTotal() {
+        let total = 0;
+        document.querySelectorAll('.cart-item').forEach(function(item) {
+            const precio = parseFloat(item.querySelector('.cart-item-price').textContent.replace('$', ''));
+            const cantidad = parseInt(item.querySelector('.quantity').textContent, 10);
+            total += precio * cantidad;
+        });
+        document.getElementById('totalPrice').textContent = '$' + total.toFixed(2);
+    }
+
+    // Listeners para botones de cantidad y eliminar
+    document.querySelectorAll('.cart-item').forEach(function(item) {
+        const decreaseBtn = item.querySelector('.decrease-btn');
+        const increaseBtn = item.querySelector('.increase-btn');
+        const quantitySpan = item.querySelector('.quantity');
+        const removeBtn = item.querySelector('.remove-button');
+
+        decreaseBtn.addEventListener('click', function() {
+            let qty = parseInt(quantitySpan.textContent, 10);
+            if (qty > 1) {
+                quantitySpan.textContent = qty - 1;
+                actualizarTotal();
+            }
+        });
+
+        increaseBtn.addEventListener('click', function() {
+            let qty = parseInt(quantitySpan.textContent, 10);
+            quantitySpan.textContent = qty + 1;
+            actualizarTotal();
+        });
+
+        removeBtn.addEventListener('click', function() {
+            item.remove();
+            actualizarTotal();
+        });
+    });
+
+    actualizarTotal();
+
+    paypal.Buttons({
+        createOrder: function(data, actions) {
+            const total = parseFloat(document.getElementById('totalPrice').textContent.replace('$', ''));
+            return actions.order.create({
+                purchase_units: [{
+                    amount: {
+                        value: total.toFixed(2)
+                    },
+                    description: "Carrito Ferremax"
+                }]
+            });
+        },
+        onApprove: function(data, actions) {
+            return actions.order.capture().then(function(details) {
+                alert('Pago realizado por ' + details.payer.name.given_name);
+            });
+        }
+    }).render('#paypal-button-container');
+</script>
+<script>
+  function renderCart() {
+    let cart = JSON.parse(localStorage.getItem('cart')) || [];
+    let container = document.getElementById('cart-items-container');
+    container.innerHTML = '';
+    let total = 0;
+    cart.forEach((item, idx) => {
+      total += item.price * item.quantity;
+      container.innerHTML += `
+        <div class="cart-item">
+          <div class="cart-item-details">
+            <img src="${item.img}" alt="Producto" style="width:50px;height:50px;">
+            <span class="cart-item-name">${item.name}</span>
+          </div>
+          <span class="cart-item-price">$${item.price.toLocaleString()}</span>
+          <div class="cart-item-quantity">
+            <button class="decrease-btn" data-idx="${idx}">-</button>
+            <span class="quantity">${item.quantity}</span>
+            <button class="increase-btn" data-idx="${idx}">+</button>
+          </div>
+          <button class="remove-button" data-idx="${idx}">Eliminar</button>
+        </div>
+      `;
+    });
+    document.getElementById('totalPrice').textContent = '$' + total.toLocaleString();
+    addCartListeners();
+  }
+
+  function addCartListeners() {
+    document.querySelectorAll('.decrease-btn').forEach(btn => {
+      btn.onclick = function() {
+        let cart = JSON.parse(localStorage.getItem('cart')) || [];
+        let idx = parseInt(btn.getAttribute('data-idx'));
+        if (cart[idx].quantity > 1) cart[idx].quantity--;
+        localStorage.setItem('cart', JSON.stringify(cart));
+        renderCart();
+      }
+    });
+    document.querySelectorAll('.increase-btn').forEach(btn => {
+      btn.onclick = function() {
+        let cart = JSON.parse(localStorage.getItem('cart')) || [];
+        let idx = parseInt(btn.getAttribute('data-idx'));
+        cart[idx].quantity++;
+        localStorage.setItem('cart', JSON.stringify(cart));
+        renderCart();
+      }
+    });
+    document.querySelectorAll('.remove-button').forEach(btn => {
+      btn.onclick = function() {
+        let cart = JSON.parse(localStorage.getItem('cart')) || [];
+        let idx = parseInt(btn.getAttribute('data-idx'));
+        cart.splice(idx, 1);
+        localStorage.setItem('cart', JSON.stringify(cart));
+        renderCart();
+      }
+    });
+  }
+
+  // Inicializar carrito al cargar la página
+  renderCart();
+</script>
+
+<script>
+  function renderCart() {
+    let cart = JSON.parse(localStorage.getItem('cart')) || [];
+    let container = document.getElementById('cart-items-container');
+    container.innerHTML = '';
+    let total = 0;
+    cart.forEach((item, idx) => {
+      total += item.price * item.quantity;
+      container.innerHTML += `
+        <div class="cart-item">
+          <div class="cart-item-details">
+            <img src="${item.img}" alt="Producto" style="width:50px;height:50px;">
+            <span class="cart-item-name">${item.name}</span>
+          </div>
+          <span class="cart-item-price">$${item.price.toLocaleString()}</span>
+          <div class="cart-item-quantity">
+            <button class="decrease-btn" data-idx="${idx}">-</button>
+            <span class="quantity">${item.quantity}</span>
+            <button class="increase-btn" data-idx="${idx}">+</button>
+          </div>
+          <button class="remove-button" data-idx="${idx}">Eliminar</button>
+        </div>
+      `;
+    });
+    document.getElementById('totalPrice').textContent = '$' + total.toLocaleString();
+    addCartListeners();
+  }
+
+  function addCartListeners() {
+    document.querySelectorAll('.decrease-btn').forEach(btn => {
+      btn.onclick = function() {
+        let cart = JSON.parse(localStorage.getItem('cart')) || [];
+        let idx = parseInt(btn.getAttribute('data-idx'));
+        if (cart[idx].quantity > 1) cart[idx].quantity--;
+        localStorage.setItem('cart', JSON.stringify(cart));
+        renderCart();
+      }
+    });
+    document.querySelectorAll('.increase-btn').forEach(btn => {
+      btn.onclick = function() {
+        let cart = JSON.parse(localStorage.getItem('cart')) || [];
+        let idx = parseInt(btn.getAttribute('data-idx'));
+        cart[idx].quantity++;
+        localStorage.setItem('cart', JSON.stringify(cart));
+        renderCart();
+      }
+    });
+    document.querySelectorAll('.remove-button').forEach(btn => {
+      btn.onclick = function() {
+        let cart = JSON.parse(localStorage.getItem('cart')) || [];
+        let idx = parseInt(btn.getAttribute('data-idx'));
+        cart.splice(idx, 1);
+        localStorage.setItem('cart', JSON.stringify(cart));
+        renderCart();
+      }
+    });
+  }
+
+  // Inicializar carrito al cargar la página
+  renderCart();
+</script>
+
 </body>
 </html>

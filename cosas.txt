@@ -6,3 +6,17 @@ Superusuario
 Username: Admin
 Email: a93423828@gmail.com
 Password: Eladmin123
+
+
+Empleados precreados
+Bodeguero
+    Email:pedro.bodeguero@gmail.com
+    Password: bodeguero123
+
+Contador
+    Email:claudia.contador@gmail.com
+    Password: contador123
+
+Vendedor
+    Email:sofia.vendedor@gmail.com
+    Password: vendedor123
