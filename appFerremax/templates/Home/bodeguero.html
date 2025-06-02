@@ -1,103 +1,178 @@
 <!DOCTYPE html>
 
 <html lang="es">
+
 <head>
     <meta charset="UTF-8">
     <title>Panel Bodeguero - Órdenes de Pedido</title>
-     {% load static %}
+    {% load static %}
     <link rel="stylesheet" href="{% static 'CSS/bodeguero.css' %}">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
 </head>
+
 <body>
-<div class="sidebar">
-    <div class="page-title">Bodeguero</div>
-    <i class="bi bi-person-circle user-icon"></i>
-    <div class="username">Juan Pérez</div>
-    <a href="{% url 'inicio' %}" class="logout-link">Cerrar sesión</a>
-</div>
-<div class="main-content">
-    <div class="container mt-4">
-        <h1 class="mb-4">Órdenes de Pedido</h1>
-        <table class="table table-bordered">
-            <thead>
-                <tr>
-                    <th># Orden</th>
-                    <th>Cliente</th>
-                    <th>Productos</th>
-                    <th>Estado</th>
-                    <th>Acciones</th>
-                </tr>
-            </thead>
-            <tbody>
-                <!-- Ejemplo de orden, reemplazar con datos dinámicos -->
-                <tr>
-                    <td>00123</td>
-                    <td>Juan Pérez</td>
-                    <td>
-                        <ul>
-                            <li>Martillo x2</li>
-                            <li>Clavos x1 caja</li>
-                            <button class="btn btn-outline-danger btn-sm">Vaciar Carro</button>
-                        </ul>
-                    </td>
-                    <td><span class="badge bg-warning">Pendiente</span></td>
-                    <td>
-                        <button class="btn btn-success btn-sm">Aceptar</button>
-                        <button class="btn btn-primary btn-sm">Preparar</button>
-                        <button class="btn btn-info btn-sm">Registrar Entrega</button>
-                    </td>
-                </tr>
-                <!-- Más órdenes aquí -->
 
-                <!-- Ejemplo de otra orden -->
-                <tr>
-                    <td>00124</td>
-                    <td>María López</td>
-                    <td>
-                        <ul class="mb-2">
-                            <li>Destornillador x1</li>
-                            <li>Tornillos x3 cajas</li>
-                        </ul>
-                        <button class="btn btn-outline-danger btn-sm">Vaciar Carro</button>
-                    </td>
-                    <td><span class="badge bg-success">Preparado</span></td>
-                    <td>
-                        <button class="btn btn-success btn-sm">Aceptar</button>
-                        <button class="btn btn-primary btn-sm">Preparar</button>
-                        <button class="btn btn-info btn-sm">Registrar Entrega</button>
-                    </td>
-                </tr>
-            </tbody>
-        </table>
+
+
+    <div class="sidebar">
+        <a href="{% url 'index' %}" class="btn btn-success"
+            style="width:90%;margin:10px auto 15px auto;display:block;">Ir al inicio</a>
+        <div class="page-title">Bodeguero</div>
+        <i class="bi bi-person-circle user-icon"></i>
+        <div class="username">Juan Pérez</div>
+        <a href="{% url 'inicio' %}" class="logout-link">Cerrar sesión</a>
     </div>
-</div>
-<script>
-    // Aquí puedes agregar scripts para manejar los botones (Aceptar, Preparar, Registrar Entrega)
-    // Por ejemplo, usando fetch para enviar solicitudes al backend.
+    <div class="main-content">
+        <div class="container mt-4">
+            <h1 class="mb-4">Órdenes de Pedido</h1>
+            <table class="table table-bordered">
+                <thead>
+                    <tr>
+                        <th># Orden</th>
+                        <th>Cliente</th>
+                        <th>Productos</th>
+                        <th>Estado</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if pedidos %}
+                    {% for pedido in pedidos %}
+                    <tr>
+                        <td>{{ pedido.id_pedido }}</td>
+                        <td>{{ pedido.cliente.nombre_cliente }} {{ pedido.cliente.apellido_cliente }}</td>
+                        <td>
+                            <ul class="mb-2">
+                                {% for detalle in pedido.detalles %}
+                                <li>{{ detalle.producto.nombre_producto }} (x{{ detalle.cantidad }})</li>
+                                {% endfor %}
+                            </ul>
+                        </td>
+                        <td>
+                            <span class="badge bg-{% if pedido.estado_pedido == 'Pendiente' %}warning
+                                    {% elif pedido.estado_pedido == 'Aprobado' %}info
+                                    {% elif pedido.estado_pedido == 'Preparado' %}success
+                                    {% elif pedido.estado_pedido == 'Enviado' %}primary
+                                    {% else %}secondary{% endif %}">
+                                {{ pedido.estado_pedido }}
+                            </span>
+                        </td>
+                        <td>
+                            <form method="post" action="{% url 'cambiar_estado_pedido' pedido.id_pedido %}">
+                                {% csrf_token %}
+                                <select name="nuevo_estado" class="form-select form-select-sm mb-2">
+                                    <option value="Pendiente" {% if pedido.estado_pedido == 'Pendiente' %}selected{% endif %}>Pendiente</option>
+                                    <option value="Aprobado" {% if pedido.estado_pedido == 'Aprobado' %}selected{% endif %}>Aprobado</option>
+                                    <option value="Preparado" {% if pedido.estado_pedido == 'Preparado' %}selected{% endif %}>Preparado</option>
+                                    <option value="Enviado" {% if pedido.estado_pedido == 'Enviado' %}selected{% endif %}>Enviado</option>
+                                    <option value="Entregado" {% if pedido.estado_pedido == 'Entregado' %}selected{% endif %}>Entregado</option>
+                                </select>
+                                <button type="submit" class="btn btn-primary btn-sm">Actualizar estado</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                    {% else %}
+                    <tr>
+                        <td colspan="5" class="text-center">No hay pedidos pendientes</td>
+                    </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <script>
+        // Aquí puedes agregar scripts para manejar los botones (Aceptar, Preparar, Registrar Entrega)
+        // Por ejemplo, usando fetch para enviar solicitudes al backend.
 
-    // Cambia el estado de la orden según el botón presionado
-    document.querySelectorAll('tbody tr').forEach(function(row) {
-        const estadoSpan = row.querySelector('td:nth-child(4) span');
-        const aceptarBtn = row.querySelector('.btn-success');
-        const prepararBtn = row.querySelector('.btn-primary');
-        const entregarBtn = row.querySelector('.btn-info');
+        // Cambia el estado de la orden según el botón presionado
+        document.querySelectorAll('tbody tr').forEach(function (row) {
+            const estadoSpan = row.querySelector('td:nth-child(4) span');
+            const aceptarBtn = row.querySelector('.btn-success');
+            const prepararBtn = row.querySelector('.btn-primary');
+            const entregarBtn = row.querySelector('.btn-info');
 
-        aceptarBtn.addEventListener('click', function() {
-            estadoSpan.textContent = 'Preparado';
-            estadoSpan.className = 'badge bg-success';
+            aceptarBtn.addEventListener('click', function () {
+                estadoSpan.textContent = 'Preparado';
+                estadoSpan.className = 'badge bg-success';
+            });
+
+            prepararBtn.addEventListener('click', function () {
+                estadoSpan.textContent = 'En Entrega';
+                estadoSpan.className = 'badge bg-info';
+            });
+
+            entregarBtn.addEventListener('click', function () {
+                estadoSpan.textContent = 'Entregado';
+                estadoSpan.className = 'badge bg-secondary';
+            });
         });
-
-        prepararBtn.addEventListener('click', function() {
-            estadoSpan.textContent = 'En Entrega';
-            estadoSpan.className = 'badge bg-info';
+    </script>
+    <script>
+        // Función para cambiar estado con AJAX
+        function cambiarEstadoAjax(pedidoId, nuevoEstado, button) {
+            // Mostrar indicador de carga
+            button.innerHTML = 'Actualizando...';
+            button.disabled = true;
+            
+            fetch(`/cambiar_estado_pedido/${pedidoId}/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: JSON.stringify({
+                    nuevo_estado: nuevoEstado
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Actualizar la UI con el nuevo estado
+                    const badgeElement = button.closest('tr').querySelector('.badge');
+                    
+                    // Cambiar clase de la etiqueta según estado
+                    badgeElement.className = 'badge bg-' + 
+                        (nuevoEstado === 'Pendiente' ? 'warning' :
+                         nuevoEstado === 'Aprobado' ? 'info' :
+                         nuevoEstado === 'Preparado' ? 'success' :
+                         nuevoEstado === 'Enviado' ? 'primary' : 'secondary');
+                    
+                    badgeElement.textContent = nuevoEstado;
+                    
+                    // Mostrar mensaje de éxito
+                    alert('Estado actualizado correctamente');
+                } else {
+                    alert(`Error: ${data.error}`);
+                }
+                
+                // Restaurar botón
+                button.innerHTML = 'Actualizar estado';
+                button.disabled = false;
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error al actualizar el estado');
+                
+                // Restaurar botón
+                button.innerHTML = 'Actualizar estado';
+                button.disabled = false;
+            });
+        }
+        
+        // Configurar los formularios para usar AJAX en lugar de submit normal
+        document.querySelectorAll('form').forEach(form => {
+            form.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                const pedidoId = this.action.split('/').filter(Boolean).pop();
+                const nuevoEstado = this.querySelector('select').value;
+                const button = this.querySelector('button');
+                
+                cambiarEstadoAjax(pedidoId, nuevoEstado, button);
+            });
         });
-
-        entregarBtn.addEventListener('click', function() {
-            estadoSpan.textContent = 'Entregado';
-            estadoSpan.className = 'badge bg-secondary';
-        });
-    });
-</script>
+    </script>
 </body>
 
-</html> 
+</html>

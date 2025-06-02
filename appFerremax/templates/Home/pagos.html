@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
     <meta charset="UTF-8">
     <title>Vista Contador - Registro de Ventas y Finanzas</title>
@@ -7,18 +8,19 @@
     <link rel="stylesheet" href="{% static 'CSS/pagos.css' %}">
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
 </head>
+
 <body>
-   <div class="sidebar">
-    <div class="page-title">Contador</div>
-    <div class="logo">
-    <svg width="90" height="90" viewBox="0 0 24 24" fill="none" class="user-logo-icon">
-        <circle cx="12" cy="8" r="5" fill="#111"/>
-        <path d="M12 14c-4 0-7 2-7 4.5V21h14v-2.5C19 16 16 14 12 14z" fill="#111"/>
-    </svg>
-</div>
-    <div class="username" id="sidebarUsername">felip</div>
-    <a href="{% url 'inicio' %}" class="logout-link">Cerrar sesión</a>
-</div>
+    <div class="sidebar">
+        <div class="page-title">Contador</div>
+        <div class="logo">
+            <svg width="90" height="90" viewBox="0 0 24 24" fill="none" class="user-logo-icon">
+                <circle cx="12" cy="8" r="5" fill="#111" />
+                <path d="M12 14c-4 0-7 2-7 4.5V21h14v-2.5C19 16 16 14 12 14z" fill="#111" />
+            </svg>
+        </div>
+        <div class="username" id="sidebarUsername">felip</div>
+        <a href="{% url 'inicio' %}" class="logout-link">Cerrar sesión</a>
+    </div>
     <div class="main-content">
         <div class="container">
             <h1 class="titulo-gestion">GESTIÓN CONTADOR</h1>
@@ -62,11 +64,15 @@
             <div class="section">
                 <h1>Balance y Reportes Financieros</h1>
                 <button class="report-btn" onclick="generarBalance()">Generar Balance</button>
-                <button class="report-btn" style="margin-left:10px;background:#e74c3c;" onclick="vaciarBalances()">Vaciar Balances</button>
+                <button class="report-btn" style="margin-left:10px;background:#e74c3c;"
+                    onclick="vaciarBalances()">Vaciar Balances</button>
                 <div class="balance" id="balanceReporte">
                     <!-- El balance aparecerá aquí -->
                 </div>
+
+                <button class="report-btn" style="background:#e74c3c;" id="btnImprimirPDF">Descargar en pdf</button>
             </div>
+
         </div>
     </div>
     <script>
@@ -105,7 +111,7 @@
             fila.insertCell(3).textContent = producto;
             fila.insertCell(4).textContent = cantidad;
             fila.insertCell(5).textContent = total;
-            ventas.push({fecha, cliente, producto, cantidad: Number(cantidad), total: Number(total)});
+            ventas.push({ fecha, cliente, producto, cantidad: Number(cantidad), total: Number(total) });
         }
 
         function agregarPago() {
@@ -133,7 +139,7 @@
             fila.insertCell(2).textContent = descripcion;
             fila.insertCell(3).textContent = monto;
             fila.insertCell(4).textContent = tipo;
-            pagos.push({fecha, descripcion, monto: Number(monto), tipo});
+            pagos.push({ fecha, descripcion, monto: Number(monto), tipo });
         }
 
         function generarBalance() {
@@ -153,6 +159,7 @@
                 <hr>
                 <strong>Balance Final:</strong> $${balance.toFixed(2)}
             `;
+            document.getElementById('btnImprimirPDF').style.display = 'inline-block';
         }
 
         function vaciarBalances() {
@@ -164,8 +171,36 @@
                 document.getElementById('tablaTransacciones').getElementsByTagName('tbody')[0].innerHTML = "";
                 document.getElementById('tablaPagos').getElementsByTagName('tbody')[0].innerHTML = "";
                 document.getElementById('balanceReporte').innerHTML = "";
+                document.getElementById('btnImprimirPDF').style.display = 'none';
             }
         }
+
+        // Lógica para descargar el balance como PDF
+        document.getElementById('btnImprimirPDF').addEventListener('click', function() {
+            const balanceDiv = document.getElementById('balanceReporte');
+            if (!balanceDiv || !balanceDiv.innerText.trim()) {
+                alert('No hay balance para descargar.');
+                return;
+            }
+            html2pdf().from(balanceDiv).set({
+                margin: 1,
+                filename: 'Balance_Financiero.pdf',
+                html2canvas: { scale: 2 },
+                jsPDF: { orientation: 'portrait', unit: 'in', format: 'letter', compressPDF: true }
+            }).save();
+        });
+
     </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
+
+
+
 </body>
+
+</html>
+
+
+</body>
+
 </html>

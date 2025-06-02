@@ -18,5 +18,22 @@ Contador
     Password: contador123
 
 Vendedor
-    Email:sofia.vendedor@gmail.com
+    Email: sofia.vendedor@gmail.com
     Password: vendedor123
+
+Paypal business
+    Email: a93423828@gmail.com
+    Password: #Ferremaslomejor
+
+    Username: sb-idvad37842920_api1.business.example.com
+    Password: F9YYCMM9F34WB3C3
+    Signature: AOXBJceK-kZJi0zRBTmCHA6tDRWIArVx6BJiaVlKwJIBPV-AZ-lVKH8.
+
+Paypal cuenta personal:
+    Email: sb-sa47r443287072@personal.example.com
+    Password: Vq8Y=buS
+
+App
+    Name: Ferremax
+    ID: AeFSoG-iJHJs-MCOwSrrVCKL7kMOo5WhE7IH9YaI8Znlcp5xZt5tfGvucUV7zGEDMl4n4bnLSgP3KXHx
+    Password: ELAmJGuLqjKT3rSIy_-vq27xc3ssrEKl4oyVmniwO-n6O5cUoFmqatAu32qbIGCxJT1LTr7qPulj36MT

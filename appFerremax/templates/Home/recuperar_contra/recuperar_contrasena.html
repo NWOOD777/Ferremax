@@ -1,14 +1,16 @@
 <!-- Formulario para recuperar contraseña -->
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
     <meta charset="UTF-8">
     <title>Recuperar Contraseña</title>
     {% load static %}
     <link rel="stylesheet" href="{% static 'CSS/inicio.css' %}">
 </head>
+
 <body>
-    <div class="login-container">
+    <!--<div class="login-container">
         <div class="logo">
             <svg width="90" height="90" viewBox="0 0 24 24" fill="none" class="user-logo-icon">
                 <circle cx="12" cy="8" r="5" fill="#111"/>
@@ -46,5 +48,13 @@
             <a href="{% url 'inicio' %}">Volver al inicio de sesión</a>
         </div>
     </div>
+-->
+    <h2>Recuperar Contraseña</h2>
+    <form method="POST">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit" class="btn btn-primary">Enviar</button>
+    </form>
 </body>
+
 </html>

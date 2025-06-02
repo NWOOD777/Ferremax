@@ -1,3 +1,4 @@
+from django.contrib import messages
 from django.shortcuts import render, redirect
 from django.http import HttpResponse, JsonResponse
 from django.utils import timezone
@@ -7,6 +8,7 @@ from django.core.mail import send_mail
 from django.template.loader import render_to_string
 from django.utils.crypto import get_random_string
 from django.conf import settings
+from django.views.decorators.csrf import csrf_exempt
 
 
 from appFerremax.forms import ProductoForm
@@ -88,10 +90,78 @@ def pedidos(request):
     return render(request, 'Home/pedidos.html')
 
 def pagos(request):
+    
     return render(request, 'Home/pagos.html')
 
 def bodeguero(request):
-    return render(request, 'Home/bodeguero.html')
+    # Verificar que el usuario esté autenticado y sea bodeguero
+    if 'nombre_usuario' not in request.session:
+        return redirect('inicio')
+        
+    tipo_usuario = request.session.get('tipo_usuario')
+    if tipo_usuario != 'Bodeguero':
+        return redirect('index')
+        
+    # Obtener los pedidos que no están completados aún
+    pedidos = Pedido.objects.filter(estado_pedido__in=['Pendiente', 'Aprobado', 'Preparado'])
+    
+    # Cargar los detalles de cada pedido
+    for pedido in pedidos:
+        pedido.detalles = DetalleProducto.objects.filter(pedido=pedido)
+        
+    return render(request, 'Home/bodeguero.html', {'pedidos': pedidos})
+
+@csrf_exempt
+def cambiar_estado_pedido(request, id_pedido):
+    # Verificar que el usuario esté autenticado y sea bodeguero
+    if 'nombre_usuario' not in request.session:
+        if request.headers.get('Content-Type') == 'application/json':
+            return JsonResponse({'success': False, 'error': 'No autorizado'}, status=403)
+        return redirect('inicio')
+        
+    tipo_usuario = request.session.get('tipo_usuario')
+    if tipo_usuario != 'Bodeguero':
+        if request.headers.get('Content-Type') == 'application/json':
+            return JsonResponse({'success': False, 'error': 'No autorizado'}, status=403)
+        return redirect('index')
+    
+    if request.method == 'POST':
+        # Determinar si es una solicitud AJAX o normal
+        is_ajax = request.headers.get('Content-Type') == 'application/json'
+        
+        # Obtener el nuevo estado del pedido
+        if is_ajax:
+            try:
+                data = json.loads(request.body)
+                nuevo_estado = data.get('nuevo_estado')
+            except json.JSONDecodeError:
+                return JsonResponse({'success': False, 'error': 'JSON inválido'}, status=400)
+        else:
+            nuevo_estado = request.POST.get('nuevo_estado')
+        
+        # Validar que el nuevo estado sea válido
+        ESTADOS_VALIDOS = ['Pendiente', 'Aprobado', 'Preparado', 'Enviado', 'Entregado']
+        if nuevo_estado not in ESTADOS_VALIDOS:
+            if is_ajax:
+                return JsonResponse({'success': False, 'error': 'Estado no válido'}, status=400)
+            messages.error(request, 'Estado no válido')
+            return redirect('bodeguero')
+        
+        try:
+            pedido = Pedido.objects.get(id_pedido=id_pedido)
+            pedido.estado_pedido = nuevo_estado
+            pedido.save()
+            
+            if is_ajax:
+                return JsonResponse({'success': True, 'estado': nuevo_estado})
+            
+            messages.success(request, f'El pedido #{id_pedido} ha sido actualizado a {nuevo_estado}')
+        except Pedido.DoesNotExist:
+            if is_ajax:
+                return JsonResponse({'success': False, 'error': f'El pedido #{id_pedido} no existe'}, status=404)
+            messages.error(request, f'El pedido #{id_pedido} no existe')
+            
+    return redirect('bodeguero')
 
 def registro(request):
     from django.core.exceptions import ValidationError
@@ -197,7 +267,7 @@ def checkout(request):
     items = []
     
     for item in carrito:
-        producto = Producto.objects.get(id_producto=item['id_producto'])
+        producto = Producto.objects.get(id_producto=item['id'])
         subtotal = Decimal(str(producto.precio_unitario)) * int(item['cantidad'])
         total += subtotal
         
@@ -233,22 +303,46 @@ def checkout(request):
     
     return redirect('carrito')
 
+@csrf_exempt
 def ejecutar_pago_view(request):
-    payment_id = request.session.get('paypal_payment_id')
-    payer_id = request.GET.get('PayerID')
-    
-    if not payment_id or not payer_id:
-        return redirect('carrito')
-    
-    if ejecutar_pago(payment_id, payer_id):
-        carrito = request.session.get('carrito', [])
-        total = Decimal(request.session.get('paypal_total', '0.00'))
-        
+    if request.method == 'POST':
         try:
-            rut_cliente = request.session.get('rut_cliente')
-            cliente = Cliente.objects.get(rut_cliente=rut_cliente)
-            
-            pedido = Pedido(
+            data = json.loads(request.body)
+            cart = data.get('cart', [])
+            payment_id = data.get('payment_id')
+            payer_id = data.get('payer_id')
+
+            # Busca el cliente en sesión
+            nombre_usuario = request.session.get('nombre_usuario')
+            if not nombre_usuario:
+                return JsonResponse({'success': False, 'error': 'Usuario no autenticado'})
+
+            cliente = Cliente.objects.filter(nombre_cliente=nombre_usuario).first()
+            if not cliente:
+                return JsonResponse({'success': False, 'error': 'Cliente no encontrado'})
+
+            # Calcula el total
+            total = sum(float(item['price']) * int(item['quantity']) for item in cart)
+
+            # Verificar carrito vacío
+            if not cart:
+                return JsonResponse({'success': False, 'error': 'El carrito está vacío'})
+
+            # Verificar stock de productos
+            for item in cart:
+                try:
+                    producto = Producto.objects.get(id_producto=item['id'])
+                    if producto.stock_total < int(item['quantity']):
+                        return JsonResponse({'success': False, 'error': f'No hay suficiente stock para {producto.nombre_producto}'})
+                except Producto.DoesNotExist:
+                    return JsonResponse({'success': False, 'error': f'Producto no encontrado'})
+
+            # Verificar total mayor a cero
+            if total <= 0:
+                return JsonResponse({'success': False, 'error': 'El total debe ser mayor a cero'})
+
+            # Crea el pedido
+            pedido = Pedido.objects.create(
                 fecha_pedido=date.today(),
                 estado_pedido="Aprobado",
                 tipo_entrega="Despacho",
@@ -256,48 +350,39 @@ def ejecutar_pago_view(request):
                 paypal_payment_id=payment_id,
                 total=total
             )
-            pedido.save()
-            
-            for item in carrito:
-                producto = Producto.objects.get(id_producto=item['id_producto'])
-                
-                detalle = DetalleProducto(
-                    cantidad=item['cantidad'],
+
+            # Crea los detalles y actualiza stock
+            for item in cart:
+                producto = Producto.objects.get(id_producto=item['id'])
+                DetalleProducto.objects.create(
+                    cantidad=item['quantity'],
                     producto=producto,
                     pedido=pedido
                 )
-                detalle.save()
-                
-                # Actualizar stock
-                producto.stock_total -= item['cantidad']
+                producto.stock_total -= int(item['quantity'])
                 producto.save()
-            
-            # Crear registro de pago
+
+            # Crea el registro de pago en la tabla Pago
             metodo_pago = MetodoPago.objects.get(nombre_metodo_pago="PayPal")
             estado_pago = EstadoPago.objects.get(estado_pago="Completado")
-            
-            pago = Pago(
+            Pago.objects.create(
                 fecha=date.today(),
                 pedido=pedido,
                 metodo_pago=metodo_pago,
                 estado_pago=estado_pago
             )
-            pago.save()
-            
+
+            # Limpia el carrito en sesión si existe
             if 'carrito' in request.session:
                 del request.session['carrito']
-            if 'paypal_payment_id' in request.session:
-                del request.session['paypal_payment_id']
-            if 'paypal_total' in request.session:
-                del request.session['paypal_total']
-            
-            return redirect('pedidos')
-            
+
+            return JsonResponse({'success': True})
+
         except Exception as e:
             print(f"Error al procesar el pedido: {e}")
-            return redirect('carrito')
-    
-    return redirect('carrito')
+            return JsonResponse({'success': False, 'error': str(e)})
+
+    return JsonResponse({'success': False, 'error': 'Método no permitido'}, status=405)
 
 def cerrar_sesion(request):
     request.session.flush()  
@@ -488,3 +573,5 @@ def recuperar_contrasena(request):
                 send_mail(subject, message, settings.DEFAULT_FROM_EMAIL, [correo])
                 mensaje = 'Se ha enviado un correo con instrucciones para restablecer tu contraseña.'
     return render(request, 'Home/recuperar_contrasena.html', {'errores': errors, 'mensaje': mensaje})
+
+

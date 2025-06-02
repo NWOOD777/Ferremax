@@ -49,7 +49,7 @@
             </div>
             <div class="options">
                 <label><input type="checkbox"> Recordarme</label>
-                <a href="#">¿Olvidó su contraseña?</a>
+                <a href="#" onclick="return confirmarRecuperarContrasena();">¿Olvidó su contraseña?</a>
             </div>
             <button type="submit" class="login-btn">Iniciar sesión</button>
         </form>
@@ -57,5 +57,13 @@
             ¿No tiene cuenta? <a href="{% url 'registro' %}">Regístrese aquí</a>
         </div>
     </div>
+    <script>
+function confirmarRecuperarContrasena() {
+    if (confirm('¿Desea restablecer su contraseña?')) {
+        window.location.href = "{% url 'recuperar_contrasena' %}";
+    }
+    return false;
+}
+</script>
 </body>
 </html>

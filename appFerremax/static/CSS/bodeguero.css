@@ -14,6 +14,8 @@
     z-index: 1000;
 }
 
+
+
 .page-title {
     font-size: 1.7rem;
     font-weight: bold;
@@ -121,5 +123,20 @@ ul { margin-bottom: 8px; }
 }
 .logout-link:hover {
     background: #b52a37;
+    color: #fff;
+}
+
+.sidebar .btn.btn-success {
+    background-color: #28a745;
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    font-size: 1.1em;
+    font-weight: bold;
+    margin-bottom: 10px;
+    transition: background 0.2s;
+}
+.sidebar .btn.btn-success:hover {
+    background-color: #218838;
     color: #fff;
 }

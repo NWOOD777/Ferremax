@@ -156,3 +156,50 @@ tbody tr:nth-child(even) {
         padding: 20px 5vw;
     }
 }
+
+
+/* Estilo para el bloque de balance */
+#balanceReporte {
+    background: #f8f9fa;
+    border: 2px solid #3498db;
+    border-radius: 10px;
+    padding: 24px 32px;
+    margin-top: 18px;
+    margin-bottom: 10px;
+    font-size: 1.15rem;
+    color: #222;
+    box-shadow: 0 2px 8px rgba(52, 152, 219, 0.08);
+    max-width: 400px;
+    transition: box-shadow 0.2s;
+}
+
+#balanceReporte strong {
+    color: #2980b9;
+    font-weight: 700;
+}
+
+#balanceReporte hr {
+    border: none;
+    border-top: 1.5px solid #3498db;
+    margin: 12px 0;
+}
+
+/* Estilo para el botón de imprimir PDF */
+#btnImprimirPDF {
+    background: #27ae60;
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    padding: 10px 22px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    margin-top: 10px;
+    box-shadow: 0 2px 6px rgba(39, 174, 96, 0.08);
+    transition: background 0.2s, box-shadow 0.2s;
+}
+
+#btnImprimirPDF:hover {
+    background: #219150;
+    box-shadow: 0 4px 12px rgba(39, 174, 96, 0.15);
+}
