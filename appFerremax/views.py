@@ -1,5 +1,5 @@
 from django.contrib import messages
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.http import HttpResponse, JsonResponse
 from django.utils import timezone
 from django.urls import reverse
@@ -9,6 +9,7 @@ from django.template.loader import render_to_string
 from django.utils.crypto import get_random_string
 from django.conf import settings
 from django.views.decorators.csrf import csrf_exempt
+import requests
 
 
 from appFerremax.forms import ProductoForm
@@ -22,7 +23,20 @@ from datetime import date
 def index(request):
     nombre_usuario = request.session.get('nombre_usuario')
     productos = Producto.objects.all()
-    return render(request, 'Home/index.html', {'nombre_usuario': nombre_usuario, 'productos': productos})
+    
+    # Calculate total cart items for display
+    carrito = request.session.get('carrito', [])
+    total_items = sum(item['cantidad'] for item in carrito) if carrito else 0
+    
+    # Verificar si aplica descuento
+    discount_eligible = total_items >= 4
+    
+    return render(request, 'Home/index.html', {
+        'nombre_usuario': nombre_usuario, 
+        'productos': productos,
+        'total_cart_items': total_items,
+        'discount_eligible': discount_eligible
+    })
 
 
 
@@ -90,8 +104,56 @@ def pedidos(request):
     return render(request, 'Home/pedidos.html')
 
 def pagos(request):
+    # Verificar que el usuario esté autenticado y sea contador
+    if 'nombre_usuario' not in request.session:
+        return redirect('inicio')
+        
+    tipo_usuario = request.session.get('tipo_usuario')
+    if tipo_usuario != 'Contador':
+        return redirect('index')
     
-    return render(request, 'Home/pagos.html')
+    # Obtener el nombre de usuario para mostrarlo en la página
+    nombre_usuario = request.session.get('nombre_usuario')
+    
+    # Obtener pagos de la base de datos
+    pagos_list = Pago.objects.all().order_by('-fecha')
+    
+    # Obtener todos los pedidos con sus detalles para tabla de transacciones
+    transacciones = []
+    # Obtenemos pedidos con pagos completados (incluye pagados pero no necesariamente entregados)
+    pagos_completados = Pago.objects.filter(estado_pago__estado_pago='Completado')
+    pedidos_pagados = [pago.pedido for pago in pagos_completados]
+    
+    for pedido in pedidos_pagados:
+        detalles = DetalleProducto.objects.filter(pedido=pedido)
+        for detalle in detalles:
+            transacciones.append({
+                'id': pedido.id_pedido,
+                'fecha': pedido.fecha_pedido,
+                'cliente': f"{pedido.cliente.nombre_cliente} {pedido.cliente.apellido_cliente}",
+                'producto': detalle.producto.nombre_producto,
+                'cantidad': detalle.cantidad,
+                'total': detalle.cantidad * detalle.producto.precio_unitario
+            })
+    
+    # Calcular totales para los informes financieros
+    total_ventas = sum(t['total'] for t in transacciones)
+    
+    ingresos = sum(pago.pedido.total for pago in pagos_list if pago.estado_pago.estado_pago == 'Completado')
+    egresos = 0  # Podría calcularse de otra tabla si existe
+
+    # Balance final
+    balance = ingresos - egresos
+    
+    return render(request, 'Home/pagos.html', {
+        'nombre_usuario': nombre_usuario,
+        'pagos': pagos_list,
+        'transacciones': transacciones,
+        'total_ventas': total_ventas,
+        'ingresos': ingresos,
+        'egresos': egresos,
+        'balance': balance
+    })
 
 def bodeguero(request):
     # Verificar que el usuario esté autenticado y sea bodeguero
@@ -101,7 +163,10 @@ def bodeguero(request):
     tipo_usuario = request.session.get('tipo_usuario')
     if tipo_usuario != 'Bodeguero':
         return redirect('index')
-        
+    
+    # Obtener el nombre de usuario para mostrarlo en la página
+    nombre_usuario = request.session.get('nombre_usuario')
+    
     # Obtener los pedidos que no están completados aún
     pedidos = Pedido.objects.filter(estado_pedido__in=['Pendiente', 'Aprobado', 'Preparado'])
     
@@ -109,7 +174,10 @@ def bodeguero(request):
     for pedido in pedidos:
         pedido.detalles = DetalleProducto.objects.filter(pedido=pedido)
         
-    return render(request, 'Home/bodeguero.html', {'pedidos': pedidos})
+    return render(request, 'Home/bodeguero.html', {
+        'pedidos': pedidos,
+        'nombre_usuario': nombre_usuario
+    })
 
 @csrf_exempt
 def cambiar_estado_pedido(request, id_pedido):
@@ -235,21 +303,108 @@ def registro(request):
     valores['fecha_registro'] = date.today().isoformat()
     return render(request, 'Home/registro.html', {'valores': valores})
 
+def agregar_al_carrito(request, id_producto):
+    try:
+        producto = get_object_or_404(Producto, id_producto=id_producto)
+        cantidad = int(request.POST.get('cantidad', 1))
+        
+        # Inicializar el carrito si no existe
+        if 'carrito' not in request.session:
+            request.session['carrito'] = []
+        
+        carrito = request.session['carrito']
+        
+        # Determinar si la llamada viene de la página del carrito (actualización) o de otro lugar (adición)
+        # Las actualizaciones desde el carrito envían la cantidad exacta, no un incremento
+        is_update_from_cart = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
+        
+        # Verificar si el producto ya está en el carrito
+        encontrado = False
+        for item in carrito:
+            if item['id'] == id_producto:
+                if is_update_from_cart:
+                    # Si es una actualización desde la página del carrito, establecer la cantidad exacta
+                    item['cantidad'] = cantidad
+                else:
+                    # Si es una adición normal desde otra página, incrementar la cantidad
+                    item['cantidad'] += cantidad
+                encontrado = True
+                messages.success(request, f'Se actualizó la cantidad de {producto.nombre_producto} en el carrito.')
+                break
+        
+        # Si no está en el carrito, agregarlo
+        if not encontrado:
+            # Aquí necesitamos manejar el caso donde imagen podría ser None
+            imagen_url = ''
+            if producto.imagen:
+                try:
+                    imagen_url = producto.imagen.url
+                except:
+                    # Si hay error al obtener la URL, dejamos vacío
+                    pass
+            
+            carrito.append({
+                'id': id_producto,
+                'nombre': producto.nombre_producto,
+                'precio': float(producto.precio_unitario),
+                'cantidad': cantidad,
+                'imagen': imagen_url,
+            })
+            messages.success(request, f'{producto.nombre_producto} agregado al carrito.')
+        
+        # Guardar el carrito actualizado en la sesión
+        request.session['carrito'] = carrito
+        request.session.modified = True
+        
+        # Verificar si es una solicitud AJAX
+        is_ajax_request = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
+        if is_ajax_request:
+            # Si es una solicitud AJAX, devolver una respuesta JSON
+            return JsonResponse({
+                'success': True, 
+                'message': 'Cantidad actualizada',
+                'cantidad': cantidad
+            })
+    except Exception as e:
+        error_msg = f'Error al agregar producto: {str(e)}'
+        messages.error(request, error_msg)
+        
+        # Si es una solicitud AJAX, devolver el error como JSON
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return JsonResponse({'success': False, 'error': error_msg}, status=400)
+    
+    # Solo para solicitudes no AJAX: Redireccionar de vuelta a la página anterior
+    return redirect('index')
+
 def carrito(request):
-    if 'nombre_usuario' not in request.session:
-        return redirect('inicio')
+    # Allow anyone to view cart even if not logged in
+    # if 'nombre_usuario' not in request.session:
+    #     return redirect('inicio')
     
-    if request.method == 'POST':
-        cart_data = json.loads(request.body)
-        request.session['carrito'] = cart_data
-        return JsonResponse({'status': 'success'})
-    
-    productos = Producto.objects.all()
     carrito = request.session.get('carrito', [])
     
+    # Calcular el total
+    total = sum(item['precio'] * item['cantidad'] for item in carrito)
+    
+    # Calcular el número total de productos en el carrito
+    total_items = sum(item['cantidad'] for item in carrito)
+    
+    # Aplicar 25% de descuento si hay 4 o más productos en el carrito
+    discount = 0
+    if total_items >= 4:
+        discount = total * 0.25  # 25% de descuento
+        total_after_discount = total - discount
+    else:
+        total_after_discount = total
+    
     return render(request, 'Home/carrito.html', {
-        'productos': productos,
-        'carrito': carrito
+        'carrito': carrito,
+        'total': total,
+        'total_items': total_items,
+        'apply_discount': total_items >= 4,
+        'discount_percentage': 25,
+        'discount_amount': discount,
+        'total_after_discount': total_after_discount
     })
 
 def checkout(request):
@@ -266,6 +421,10 @@ def checkout(request):
     total = Decimal('0.00')
     items = []
     
+    # Contar productos para el descuento
+    total_items = sum(item['cantidad'] for item in carrito)
+    apply_discount = total_items >= 4
+    
     for item in carrito:
         producto = Producto.objects.get(id_producto=item['id'])
         subtotal = Decimal(str(producto.precio_unitario)) * int(item['cantidad'])
@@ -278,6 +437,11 @@ def checkout(request):
             "currency": "USD",
             "quantity": item['cantidad']
         })
+    
+    # Aplicar descuento de 25% si hay 4 o más productos
+    if apply_discount:
+        discount = total * Decimal('0.25')
+        total = total - discount
     
     base_url = request.build_absolute_uri('/')[:-1]
     redirect_urls = {
@@ -321,23 +485,83 @@ def ejecutar_pago_view(request):
             if not cliente:
                 return JsonResponse({'success': False, 'error': 'Cliente no encontrado'})
 
-            # Calcula el total
-            total = sum(float(item['price']) * int(item['quantity']) for item in cart)
-
             # Verificar carrito vacío
             if not cart:
-                return JsonResponse({'success': False, 'error': 'El carrito está vacío'})
-
-            # Verificar stock de productos
+                # Si no hay carrito en la solicitud, intentar obtener de la sesión
+                cart = request.session.get('carrito', [])
+                if not cart:
+                    return JsonResponse({'success': False, 'error': 'El carrito está vacío'})
+                
+            # Imprimir para depuración
+            print("Estructura del carrito recibido:", cart)
+            
+            # Asegurarse de que el carrito tiene el formato correcto
+            total = 0
+            processed_cart = []
+            
             for item in cart:
                 try:
-                    producto = Producto.objects.get(id_producto=item['id'])
-                    if producto.stock_total < int(item['quantity']):
-                        return JsonResponse({'success': False, 'error': f'No hay suficiente stock para {producto.nombre_producto}'})
-                except Producto.DoesNotExist:
-                    return JsonResponse({'success': False, 'error': f'Producto no encontrado'})
+                    # Acceder a las propiedades según el formato del carrito
+                    print(f"Item recibido: {item}")
+                    
+                    # Compatibilidad con diferentes formatos de carrito
+                    item_id = item.get('id')
+                    # Para el formato de carrito de sesión
+                    quantity = int(item.get('quantity', item.get('cantidad', 1)))
+                    price = float(item.get('price', item.get('precio', 0)))
+                    
+                    print(f"Procesando item: id={item_id}, quantity={quantity}, price={price}")
+                    
+                    if not item_id:
+                        return JsonResponse({'success': False, 'error': 'ID de producto no encontrado en el carrito. Por favor, vuelva a agregar los productos.'})
+                    
+                    # Buscar el producto en la base de datos
+                    try:
+                        producto = Producto.objects.get(id_producto=item_id)
+                        print(f"Producto encontrado: {producto.nombre_producto}, Stock actual: {producto.stock_total}, Cantidad solicitada: {quantity}")
+                        
+                        # Asegurarse de que stock_total es un entero
+                        stock_total = int(producto.stock_total) if producto.stock_total is not None else 0
+                        
+                        # Verificar stock
+                        if stock_total < quantity:
+                            print(f"ERROR DE STOCK: {producto.nombre_producto} - Stock disponible: {stock_total}, Cantidad solicitada: {quantity}")
+                            return JsonResponse({'success': False, 'error': f'No hay suficiente stock para {producto.nombre_producto} (Stock: {stock_total}, Solicitado: {quantity})'})
+                            
+                        # Verificar que el stock no sea negativo
+                        if stock_total <= 0:
+                            print(f"ERROR DE STOCK NEGATIVO: {producto.nombre_producto} - Stock disponible: {stock_total}")
+                            return JsonResponse({'success': False, 'error': f'El producto {producto.nombre_producto} está fuera de stock'})
+                    except Producto.DoesNotExist:
+                        return JsonResponse({'success': False, 'error': f'Producto ID:{item_id} no encontrado'})
+                    except Exception as e:
+                        print(f"Error al verificar stock: {str(e)}")
+                        return JsonResponse({'success': False, 'error': f'Error verificando stock: {str(e)}'})
 
-            # Verificar total mayor a cero
+                    # Calcular subtotal y acumularlo
+                    subtotal = price * quantity
+                    total += subtotal
+                    
+                    # Guardar los datos procesados para usar más tarde
+                    processed_cart.append({
+                        'id': item_id,
+                        'quantity': quantity,
+                        'price': price,
+                        'producto': producto
+                    })
+                    
+                except Producto.DoesNotExist:
+                    return JsonResponse({'success': False, 'error': f'Producto ID:{item_id} no encontrado'})
+                except Exception as e:
+                    return JsonResponse({'success': False, 'error': f'Error procesando el carrito: {str(e)}'})
+
+            # Aplicar descuento de 25% si hay 4 o más productos
+            total_items = sum(item['quantity'] for item in processed_cart)
+            if total_items >= 4:
+                discount = total * 0.25
+                total = total - discount
+            
+            # Verificar total mayor a cero (usando el total calculado con los productos procesados)
             if total <= 0:
                 return JsonResponse({'success': False, 'error': 'El total debe ser mayor a cero'})
 
@@ -351,15 +575,15 @@ def ejecutar_pago_view(request):
                 total=total
             )
 
-            # Crea los detalles y actualiza stock
-            for item in cart:
-                producto = Producto.objects.get(id_producto=item['id'])
+            # Crea los detalles y actualiza stock usando el carrito procesado
+            for item in processed_cart:
+                producto = item['producto']
                 DetalleProducto.objects.create(
                     cantidad=item['quantity'],
                     producto=producto,
                     pedido=pedido
                 )
-                producto.stock_total -= int(item['quantity'])
+                producto.stock_total -= item['quantity']
                 producto.save()
 
             # Crea el registro de pago en la tabla Pago
@@ -372,9 +596,10 @@ def ejecutar_pago_view(request):
                 estado_pago=estado_pago
             )
 
-            # Limpia el carrito en sesión si existe
+            # Limpia el carrito en sesión
             if 'carrito' in request.session:
                 del request.session['carrito']
+                request.session.modified = True
 
             return JsonResponse({'success': True})
 
@@ -573,5 +798,100 @@ def recuperar_contrasena(request):
                 send_mail(subject, message, settings.DEFAULT_FROM_EMAIL, [correo])
                 mensaje = 'Se ha enviado un correo con instrucciones para restablecer tu contraseña.'
     return render(request, 'Home/recuperar_contrasena.html', {'errores': errors, 'mensaje': mensaje})
+
+def check_stock(request):
+    """
+    View to check the stock levels of all products.
+    For debugging purposes.
+    """
+    productos = Producto.objects.all().order_by('stock_total')
+    return render(request, 'Home/check_stock.html', {'productos': productos})
+
+def api_dolar(request):
+    """
+    Vista para obtener el tipo de cambio actual de USD a CLP utilizando la API de ExchangeRate-API
+    """
+    try:
+        # Llamada a la API gratuita de ExchangeRate-API
+        response = requests.get('https://open.er-api.com/v6/latest/USD')
+        data = response.json()
+        
+        # Verificar si la llamada fue exitosa
+        if response.status_code == 200 and data.get('result') == 'success':
+            # Obtener el tipo de cambio de USD a CLP
+            usd_to_clp = data['rates'].get('CLP', 0)
+            
+            # Obtener tipos de cambio adicionales (opcional)
+            usd_to_eur = data['rates'].get('EUR', 0)
+            usd_to_gbp = data['rates'].get('GBP', 0)
+            
+            # Renderizar la plantilla con los datos
+            return render(request, 'apidolar.html', {
+                'usd_to_clp': usd_to_clp,
+                'usd_to_eur': usd_to_eur,
+                'usd_to_gbp': usd_to_gbp,
+                'timestamp': data.get('time_last_update_utc', ''),
+                'success': True
+            })
+        else:
+            # En caso de error, mostrar mensaje
+            return render(request, 'apidolar.html', {
+                'error_message': 'No se pudo obtener el tipo de cambio. Intente nuevamente más tarde.',
+                'success': False
+            })
+    except Exception as e:
+        # En caso de error, mostrar mensaje
+        return render(request, 'apidolar.html', {
+            'error_message': f'Error al obtener el tipo de cambio: {str(e)}',
+            'success': False
+        })
+
+def api_dolar_json(request):
+    """
+    Endpoint JSON para obtener el tipo de cambio actual de USD a CLP utilizando la API de ExchangeRate-API
+    """
+    try:
+        # Llamada a la API gratuita de ExchangeRate-API
+        response = requests.get('https://open.er-api.com/v6/latest/USD')
+        data = response.json()
+        
+        # Verificar si la llamada fue exitosa
+        if response.status_code == 200 and data.get('result') == 'success':
+            # Obtener el tipo de cambio de USD a CLP
+            usd_to_clp = data['rates'].get('CLP', 850)  # Valor predeterminado 850 si no se encuentra
+            
+            # Devolver respuesta JSON
+            return JsonResponse({
+                'success': True,
+                'exchange_rate': usd_to_clp,
+                'timestamp': data.get('time_last_update_utc', '')
+            })
+        else:
+            # En caso de error, devolver mensaje de error
+            return JsonResponse({
+                'success': False,
+                'error': 'No se pudo obtener el tipo de cambio'
+            })
+    except Exception as e:
+        # En caso de error, devolver mensaje de error
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        })
+
+def remove_from_cart(request, id_producto):
+    if 'carrito' in request.session:
+        carrito = request.session['carrito']
+        # Find the item by id
+        for i, item in enumerate(carrito):
+            if item['id'] == id_producto:
+                del carrito[i]
+                break
+                
+        # Update the session
+        request.session['carrito'] = carrito
+        request.session.modified = True
+    
+    return redirect('carrito')
 
 

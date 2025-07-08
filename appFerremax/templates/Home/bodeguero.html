@@ -15,12 +15,14 @@
 
 
     <div class="sidebar">
+        {% if nombre_usuario %}
         <a href="{% url 'index' %}" class="btn btn-success"
             style="width:90%;margin:10px auto 15px auto;display:block;">Ir al inicio</a>
         <div class="page-title">Bodeguero</div>
         <i class="bi bi-person-circle user-icon"></i>
-        <div class="username">Juan Pérez</div>
+        <div class="username">{{ nombre_usuario }}</div>
         <a href="{% url 'inicio' %}" class="logout-link">Cerrar sesión</a>
+        {% endif %}
     </div>
     <div class="main-content">
         <div class="container mt-4">

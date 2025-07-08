@@ -3,178 +3,746 @@
 
 <head>
     <meta charset="UTF-8">
-    <title>Carrito de Compras</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Carrito de Compras - Ferremax</title>
     {% load static %}
+    {% load cart_filters %}
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="{% static 'CSS/carrito.css' %}">
+    <style>
+        body {
+            font-family: 'Nunito', sans-serif;
+            background-color: #f8f9fa;
+            color: #212529;
+            padding-top: 20px;
+            padding-bottom: 100px;
+        }
+        
+        .cart-header {
+            padding-bottom: 15px;
+            border-bottom: 1px solid #e9ecef;
+            margin-bottom: 25px;
+        }
+        
+        .cart-container {
+            max-width: 1000px;
+            margin: 40px auto;
+            background-color: #fff;
+            border-radius: 12px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+            padding: 30px;
+        }
+        
+        .cart-item {
+            display: flex;
+            align-items: center;
+            padding: 20px;
+            margin-bottom: 15px;
+            background-color: #ffffff;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+            transition: transform 0.2s, box-shadow 0.2s;
+            position: relative;
+        }
+        
+        .cart-item:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+        }
+        
+        .cart-item-image {
+            width: 100px;
+            height: 100px;
+            margin-right: 25px;
+            flex-shrink: 0;
+        }
+        
+        .cart-item-image img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 8px;
+        }
+        
+        .no-image {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            height: 100%;
+            background-color: #f0f0f0;
+            color: #999;
+            font-size: 14px;
+            border-radius: 8px;
+        }
+        
+        .cart-item-details {
+            flex-grow: 1;
+        }
+        
+        .cart-item-details h3 {
+            font-size: 18px;
+            margin-bottom: 5px;
+            color: #343a40;
+        }
+        
+        .price {
+            font-size: 16px;
+            color: #6c757d;
+            margin-bottom: 10px;
+        }
+        
+        .quantity-controls form {
+            display: flex;
+            align-items: center;
+            max-width: 280px;
+        }
+        
+        .quantity-input-group {
+            width: 100%;
+        }
+        
+        .quantity-controls input.qty-input {
+            width: 60px;
+            text-align: center;
+            font-weight: bold;
+            border: 1px solid #ced4da;
+            border-radius: 0;
+            padding: 5px;
+            background-color: white;
+        }
+        
+        .quantity-controls .decrease-qty,
+        .quantity-controls .increase-qty {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 38px;
+            height: 38px;
+            padding: 0;
+            font-size: 14px;
+        }
+        
+        .update-btn {
+            background-color: #4C71AF;
+            color: white;
+            border: none;
+            padding: 5px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            margin-left: 8px;
+        }
+        
+        .update-btn:hover {
+            background-color: #395988;
+        }
+        
+        .cart-item-subtotal {
+            margin-left: 20px;
+            text-align: right;
+            font-weight: bold;
+            font-size: 18px;
+            color: #343a40;
+            min-width: 100px;
+        }
+        
+        .remove-item {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            color: #dc3545;
+            text-decoration: none;
+            font-size: 18px;
+            font-weight: bold;
+            transition: color 0.2s;
+        }
+        
+        .remove-item:hover {
+            color: #bd2130;
+        }
+        
+        .empty-cart {
+            text-align: center;
+            padding: 50px 0;
+        }
+        
+        .empty-cart p {
+            font-size: 18px;
+            color: #6c757d;
+            margin-bottom: 20px;
+        }
+        
+        .btn-continuar-comprando {
+            display: inline-block;
+            background-color: #4C71AF;
+            color: white;
+            padding: 10px 20px;
+            text-decoration: none;
+            border-radius: 5px;
+            font-weight: bold;
+            transition: background-color 0.2s;
+        }
+        
+        .btn-continuar-comprando:hover {
+            background-color: #395988;
+            color: white;
+        }
+        
+        .cart-summary {
+            max-width: 1000px;
+            margin: 0 auto 20px;
+            background-color: #fff;
+            border-radius: 12px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+            padding: 25px;
+        }
+        
+        .total-block {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-bottom: 20px;
+            margin-bottom: 20px;
+            border-bottom: 1px solid #e9ecef;
+            font-size: 18px;
+        }
+        
+        .total-price {
+            font-size: 24px;
+            font-weight: bold;
+            color: #343a40;
+        }
+        
+        .paypal-block {
+            padding-top: 10px;
+        }
+        
+        .btn-return {
+            display: inline-flex;
+            align-items: center;
+            background-color: #4C71AF;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 5px;
+            text-decoration: none;
+            transition: background-color 0.2s;
+            margin-bottom: 20px;
+            font-weight: bold;
+        }
+        
+        .btn-return:hover {
+            background-color: #395988;
+            color: white;
+        }
+        
+        .btn-return i {
+            margin-right: 8px;
+        }
+        
+        /* Estilos para el feedback de actualización */
+        .quantity-input-group.update-success {
+            transition: background-color 0.3s ease;
+        }
+        
+        .update-spinner {
+            color: #4C71AF;
+        }
+        
+        /* Animación sutil de actualización */
+        @keyframes updateSuccess {
+            0% { background-color: rgba(25, 135, 84, 0); }
+            50% { background-color: rgba(25, 135, 84, 0.15); }
+            100% { background-color: rgba(25, 135, 84, 0); }
+        }
+        
+        .update-animation {
+            animation: updateSuccess 1s ease;
+        }
+        
+        /* Estilos para el bloque de descuento */
+        .discount-block {
+            margin-bottom: 20px;
+            padding: 15px;
+            border-radius: 8px;
+            background-color: #d1e7dd;
+            border-color: #badbcc;
+        }
+        
+        .discount-amount {
+            font-weight: bold;
+            font-size: 18px;
+            color: #198754;
+        }
+        
+        .total-after-discount {
+            border-top: 1px dashed #ced4da;
+            padding-top: 15px;
+            margin-top: 5px;
+        }
+        
+        .total-after-discount .total-price {
+            color: #198754;
+        }
+        
+        .discount-info {
+            margin-bottom: 20px;
+            color: #6c757d;
+        }
+    </style>
 </head>
 
 <body>
+    <!-- CSRF Token para las solicitudes AJAX -->
+    {% csrf_token %}
+    
+    <div class="container">
+        <!-- Back button -->
+        <a href="{% url 'index' %}" class="btn-return">
+            <i class="fas fa-arrow-left"></i> Volver a la tienda
+        </a>
 
-    <a href="{% url 'index' %}" class="btn-regresar-inicio">
-        &larr; Regresar al inicio
-    </a>
+        <div class="cart-container">
+            <div class="cart-header">
+                <h2 class="mb-0"><i class="fas fa-shopping-cart me-2"></i>Tu Carrito de Compras</h2>
+            </div>
+            
+            <div id="cart-items-container">
+                {% if carrito %}
+                    {% for item in carrito %}
+                    <div class="cart-item">
+                        <div class="cart-item-image">
+                            {% if item.imagen %}
+                            <img src="{{ item.imagen }}" alt="{{ item.nombre }}" class="shadow-sm">
+                            {% else %}
+                            <div class="no-image">
+                                <i class="fas fa-image me-2"></i>Sin imagen
+                            </div>
+                            {% endif %}
+                        </div>
+                        <div class="cart-item-details">
+                            <h3>{{ item.nombre }}</h3>
+                            <p class="price"><i class="fas fa-tag me-1"></i>${{ item.precio|floatformat:0 }} CLP</p>
+                            <div class="quantity-controls">
+                                <div class="input-group quantity-input-group" data-product-id="{{ item.id }}" data-price="{{ item.precio }}">
+                                    <button type="button" class="btn btn-outline-secondary decrease-qty" title="Disminuir cantidad">
+                                        <i class="fas fa-minus"></i>
+                                    </button>
+                                    <input type="number" name="cantidad" value="{{ item.cantidad }}" min="1" class="form-control text-center qty-input" readonly>
+                                    <button type="button" class="btn btn-outline-secondary increase-qty" title="Aumentar cantidad">
+                                        <i class="fas fa-plus"></i>
+                                    </button>
+                                    <div class="spinner-border text-primary update-spinner ms-2" role="status" style="display: none; width: 1.5rem; height: 1.5rem;">
+                                        <span class="visually-hidden">Actualizando...</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="cart-item-subtotal">
+                            <p>${{ item.precio|multiply:item.cantidad|floatformat:0 }} CLP</p>
+                        </div>
+                        <a href="{% url 'remove_from_cart' item.id %}" class="remove-item" title="Eliminar producto">
+                            <i class="fas fa-times-circle"></i>
+                        </a>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="empty-cart">
+                        <i class="fas fa-shopping-cart fa-4x mb-3 text-muted"></i>
+                        <p>Tu carrito está vacío</p>
+                        <a href="{% url 'index' %}" class="btn-continuar-comprando">
+                            <i class="fas fa-store me-1"></i> Continuar comprando
+                        </a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
 
-
-    <div class="cart-container">
-        <h2>Carrito de Compras</h2>
-        <div id="cart-items-container"></div>
+        {% if carrito %}
+        <div class="cart-summary">
+            {% if apply_discount %}
+            <div class="discount-block alert alert-success">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <i class="fas fa-tags me-2"></i>
+                        <strong>¡Descuento del {{ discount_percentage }}%!</strong>
+                        <p class="m-0 small">Descuento aplicado por tener {{ total_items }} productos</p>
+                    </div>
+                    <span class="discount-amount">
+                        -${{ discount_amount|floatformat:0 }} CLP
+                    </span>
+                </div>
+            </div>
+            
+            <div class="total-block total-after-discount">
+                <span><i class="fas fa-money-bill-wave me-2"></i>Total:</span>
+                <span class="total-price" id="totalPrice">
+                    ${{ total_after_discount|floatformat:0 }} CLP
+                </span>
+            </div>
+            {% else %}
+            <div class="discount-info alert alert-light">
+                <i class="fas fa-info-circle me-2"></i>
+                <span>Compra 4 o más productos y obtén un 25% de descuento</span>
+            </div>
+            
+            <div class="total-block">
+                <span><i class="fas fa-money-bill-wave me-2"></i>Total:</span>
+                <span class="total-price" id="totalPrice">
+                    ${% if total %}{{ total|floatformat:0 }}{% else %}0{% endif %} CLP
+                </span>
+            </div>
+            {% endif %}
+            
+            <div class="paypal-block">
+                <div id="paypal-button-container"></div>
+            </div>
+        </div>
+        {% endif %}
     </div>
 
-    <div class="cart-summary">
-        <div class="total-block">
-            <span>Total:</span>
-            <span class="total-price" id="totalPrice">$0</span>
-        </div>
-        <div class="paypal-block">
-            <div id="paypal-button-container"></div>
-        </div>
-    </div>
-
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/js/bootstrap.bundle.min.js"></script>
+    
     <!-- Cargar el SDK de PayPal -->
     <script
         src="https://www.paypal.com/sdk/js?client-id=AeFSoG-iJHJs-MCOwSrrVCKL7kMOo5WhE7IH9YaI8Znlcp5xZt5tfGvucUV7zGEDMl4n4bnLSgP3KXHx&currency=USD"></script>
 
     <!-- Todo el código JavaScript en un solo bloque -->
     <script>
-        // Función para renderizar el carrito desde localStorage
-        function renderCart() {
-            let cart = JSON.parse(localStorage.getItem('cart')) || [];
-            let container = document.getElementById('cart-items-container');
-            container.innerHTML = '';
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log("Carrito cargado desde la sesión de Django");
+            
+            // Configurar los botones de aumento y disminución de cantidad
+            setupQuantityButtons();
+            
+            // Inicializar botones de PayPal con el carrito de sesión
+            initPayPalButton();
+        });
+        
+        // Función para configurar los botones de cantidad
+        function setupQuantityButtons() {
+            // Botones para aumentar cantidad
+            document.querySelectorAll('.increase-qty').forEach(button => {
+                button.addEventListener('click', function() {
+                    const inputGroup = this.closest('.quantity-input-group');
+                    const inputEl = inputGroup.querySelector('.qty-input');
+                    const productId = inputGroup.dataset.productId;
+                    let value = parseInt(inputEl.value);
+                    
+                    // Incrementar valor y actualizar en tiempo real
+                    value += 1;
+                    inputEl.value = value;
+                    
+                    // Actualizar carrito en el servidor
+                    updateCartQuantity(productId, value, inputGroup);
+                });
+            });
+            
+            // Botones para disminuir cantidad
+            document.querySelectorAll('.decrease-qty').forEach(button => {
+                button.addEventListener('click', function() {
+                    const inputGroup = this.closest('.quantity-input-group');
+                    const inputEl = inputGroup.querySelector('.qty-input');
+                    const productId = inputGroup.dataset.productId;
+                    let value = parseInt(inputEl.value);
+                    
+                    if (value > 1) {
+                        // Decrementar valor y actualizar en tiempo real
+                        value -= 1;
+                        inputEl.value = value;
+                        
+                        // Actualizar carrito en el servidor
+                        updateCartQuantity(productId, value, inputGroup);
+                    }
+                });
+            });
+        }
+        
+        // Función para actualizar la cantidad del carrito en el servidor
+        function updateCartQuantity(productId, quantity, inputGroup) {
+            // Mostrar spinner de carga
+            const spinner = inputGroup.querySelector('.update-spinner');
+            spinner.style.display = 'inline-block';
+            
+            // Crear un FormData para enviar la solicitud
+            const formData = new FormData();
+            formData.append('cantidad', quantity);
+            
+            // Obtener el token CSRF
+            const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+            
+            // Enviar solicitud al servidor para actualizar la cantidad
+            fetch(`/agregar_al_carrito/${productId}/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': csrfToken,
+                    'X-Requested-With': 'XMLHttpRequest'  // Identificar que es una solicitud AJAX
+                },
+                body: formData
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Error al actualizar el carrito');
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (!data.success) {
+                    throw new Error(data.error || 'Error al actualizar el carrito');
+                }
+                
+                // Actualizar el subtotal
+                const price = parseFloat(inputGroup.dataset.price);
+                const subtotal = price * quantity;
+                
+                // Encontrar y actualizar el elemento de subtotal
+                const cartItem = inputGroup.closest('.cart-item');
+                const subtotalEl = cartItem.querySelector('.cart-item-subtotal p');
+                subtotalEl.textContent = '$' + subtotal.toFixed(0) + ' CLP';
+                
+                // Actualizar el total general
+                updateCartTotal();
+                
+                // Mostrar feedback visual de éxito
+                showUpdateFeedback(inputGroup, 'success');
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                // Mostrar feedback visual de error
+                showUpdateFeedback(inputGroup, 'error');
+            })
+            .finally(() => {
+                // Ocultar spinner de carga después de un breve retraso
+                setTimeout(() => {
+                    spinner.style.display = 'none';
+                }, 500);
+            });
+        }
+        
+        // Función para actualizar el total del carrito
+        function updateCartTotal() {
             let total = 0;
             let totalItems = 0;
-
-            cart.forEach((item, idx) => {
-                total += item.price * item.quantity;
-                totalItems += item.quantity;
-                container.innerHTML += `
-                    <div class="cart-item" data-id="${item.id}">
-                        <div class="cart-item-details">
-                            <img src="${item.img}" alt="Producto" style="width:50px;height:50px;">
-                            <span class="cart-item-name">${item.name}</span>
-                        </div>
-                        <span class="cart-item-price">$${item.price.toLocaleString()}</span>
-                        <div class="cart-item-quantity">
-                            <button class="decrease-btn" data-idx="${idx}">-</button>
-                            <span class="quantity">${item.quantity}</span>
-                            <button class="increase-btn" data-idx="${idx}">+</button>
-                        </div>
-                        <button class="remove-button" data-idx="${idx}">Eliminar</button>
-                    </div>
-                `;
+            
+            // Calcular total y contar productos
+            document.querySelectorAll('.cart-item').forEach(item => {
+                const subtotalText = item.querySelector('.cart-item-subtotal p').textContent;
+                const subtotal = parseFloat(subtotalText.replace('$', '').replace(' CLP', '').replace(',', ''));
+                const quantity = parseInt(item.querySelector('.qty-input').value);
+                
+                total += subtotal;
+                totalItems += quantity;
             });
-
-            let descuento = 0;
+            
+            // Aplicar descuento si hay 4 o más productos
+            let discountAmount = 0;
+            let totalAfterDiscount = total;
+            
             if (totalItems >= 4) {
-                descuento = total * 0.25;
+                discountAmount = total * 0.25; // 25% de descuento
+                totalAfterDiscount = total - discountAmount;
+                
+                // Actualizar o crear elementos de descuento
+                updateOrCreateDiscountElements(totalItems, discountAmount, totalAfterDiscount);
+            } else {
+                // Mostrar mensaje informativo sobre el descuento
+                updateOrCreateInfoElement(total);
             }
-            let totalConDescuento = total - descuento;
-
-            document.getElementById('totalPrice').textContent = '$' + totalConDescuento.toLocaleString();
-
-            // Mostrar mensaje de descuento si aplica
-            let summary = document.querySelector('.cart-summary');
-            let descuentoMsg = document.getElementById('descuento-msg');
-            if (descuento > 0) {
-                if (!descuentoMsg) {
-                    descuentoMsg = document.createElement('div');
-                    descuentoMsg.id = 'descuento-msg';
-                    descuentoMsg.style.color = 'green';
-                    descuentoMsg.style.fontWeight = 'bold';
-                    summary.insertBefore(descuentoMsg, summary.firstChild);
-                }
-                descuentoMsg.textContent = '¡Descuento aplicado del 25% por comprar 4 o más productos!';
-            } else if (descuentoMsg) {
-                descuentoMsg.remove();
-            }
-
-            addCartListeners();
         }
-
-        // Añadir listeners para los botones del carrito
-        function addCartListeners() {
-            document.querySelectorAll('.decrease-btn').forEach(btn => {
-                btn.onclick = function () {
-                    let cart = JSON.parse(localStorage.getItem('cart')) || [];
-                    let idx = parseInt(btn.getAttribute('data-idx'));
-                    if (cart[idx].quantity > 1) cart[idx].quantity--;
-                    localStorage.setItem('cart', JSON.stringify(cart));
-                    renderCart();
-                }
-            });
-
-            document.querySelectorAll('.increase-btn').forEach(btn => {
-                btn.onclick = function () {
-                    let cart = JSON.parse(localStorage.getItem('cart')) || [];
-                    let idx = parseInt(btn.getAttribute('data-idx'));
-                    cart[idx].quantity++;
-                    localStorage.setItem('cart', JSON.stringify(cart));
-                    renderCart();
-                }
-            });
-
-            document.querySelectorAll('.remove-button').forEach(btn => {
-                btn.onclick = function () {
-                    let cart = JSON.parse(localStorage.getItem('cart')) || [];
-                    let idx = parseInt(btn.getAttribute('data-idx'));
-                    cart.splice(idx, 1);
-                    localStorage.setItem('cart', JSON.stringify(cart));
-                    renderCart();
-                }
-            });
+        
+        // Función para actualizar o crear los elementos de descuento
+        function updateOrCreateDiscountElements(totalItems, discountAmount, totalAfterDiscount) {
+            const cartSummary = document.querySelector('.cart-summary');
+            
+            // Limpiar el contenido actual del cart-summary
+            cartSummary.innerHTML = '';
+            
+            // Crear el bloque de descuento
+            const discountBlock = document.createElement('div');
+            discountBlock.className = 'discount-block alert alert-success';
+            discountBlock.innerHTML = `
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <i class="fas fa-tags me-2"></i>
+                        <strong>¡Descuento del 25%!</strong>
+                        <p class="m-0 small">Descuento aplicado por tener ${totalItems} productos</p>
+                    </div>
+                    <span class="discount-amount">
+                        -$${discountAmount.toFixed(0)} CLP
+                    </span>
+                </div>
+            `;
+            
+            // Agregar el bloque de descuento al resumen del carrito
+            cartSummary.appendChild(discountBlock);
+            
+            // Crear el bloque de total con descuento
+            const totalAfterDiscountBlock = document.createElement('div');
+            totalAfterDiscountBlock.className = 'total-block total-after-discount';
+            totalAfterDiscountBlock.innerHTML = `
+                <span><i class="fas fa-money-bill-wave me-2"></i>Total:</span>
+                <span class="total-price" id="totalPrice">
+                    $${totalAfterDiscount.toFixed(0)} CLP
+                </span>
+            `;
+            
+            // Agregar el bloque de total con descuento al resumen del carrito
+            cartSummary.appendChild(totalAfterDiscountBlock);
+            
+            // Agregar el contenedor de PayPal
+            const paypalBlock = document.createElement('div');
+            paypalBlock.className = 'paypal-block';
+            paypalBlock.innerHTML = '<div id="paypal-button-container"></div>';
+            cartSummary.appendChild(paypalBlock);
+            
+            // Volver a inicializar el botón de PayPal
+            if (typeof paypal !== 'undefined') {
+                initPayPalButton();
+            }
+        }
+        
+        // Función para mostrar el mensaje informativo de descuento
+        function updateOrCreateInfoElement(total) {
+            const cartSummary = document.querySelector('.cart-summary');
+            
+            // Limpiar el contenido actual del cart-summary
+            cartSummary.innerHTML = '';
+            
+            // Crear el mensaje informativo de descuento
+            const discountInfo = document.createElement('div');
+            discountInfo.className = 'discount-info alert alert-light';
+            discountInfo.innerHTML = `
+                <i class="fas fa-info-circle me-2"></i>
+                <span>Compra 4 o más productos y obtén un 25% de descuento</span>
+            `;
+            
+            // Agregar el mensaje informativo al resumen del carrito
+            cartSummary.appendChild(discountInfo);
+            
+            // Crear el bloque de total normal
+            const totalBlock = document.createElement('div');
+            totalBlock.className = 'total-block';
+            totalBlock.innerHTML = `
+                <span><i class="fas fa-money-bill-wave me-2"></i>Total:</span>
+                <span class="total-price" id="totalPrice">
+                    $${total.toFixed(0)} CLP
+                </span>
+            `;
+            
+            // Agregar el bloque de total al resumen del carrito
+            cartSummary.appendChild(totalBlock);
+            
+            // Agregar el contenedor de PayPal
+            const paypalBlock = document.createElement('div');
+            paypalBlock.className = 'paypal-block';
+            paypalBlock.innerHTML = '<div id="paypal-button-container"></div>';
+            cartSummary.appendChild(paypalBlock);
+            
+            // Volver a inicializar el botón de PayPal
+            if (typeof paypal !== 'undefined') {
+                initPayPalButton();
+            }
+        }
+        
+        // Función para mostrar feedback visual de la actualización
+        function showUpdateFeedback(inputGroup, status) {
+            const originalBackground = inputGroup.style.background;
+            
+            if (status === 'success') {
+                // Efecto visual sutil para indicar éxito
+                inputGroup.style.background = 'rgba(25, 135, 84, 0.1)';
+            } else {
+                // Efecto visual para indicar error
+                inputGroup.style.background = 'rgba(220, 53, 69, 0.1)';
+            }
+            
+            // Restaurar el fondo original después de un momento
+            setTimeout(() => {
+                inputGroup.style.background = originalBackground;
+            }, 1000);
         }
 
         // Configurar botón de PayPal
-        paypal.Buttons({
-            createOrder: function (data, actions) {
-                const total = parseFloat(document.getElementById('totalPrice').textContent.replace('$', '').replace(',', ''));
-                return actions.order.create({
-                    purchase_units: [{
-                        amount: {
-                            value: total.toFixed(2)
-                        },
-                        description: "Carrito Ferremax"
-                    }]
-                });
-            },
-            onApprove: function (data, actions) {
-                return actions.order.capture().then(function (details) {
-                    // Guarda la información del carrito en la sesión
-                    const cart = JSON.parse(localStorage.getItem('cart')) || [];
-
-                    // Envía los datos del carrito al backend utilizando fetch
-                    fetch('/ejecutar_pago/', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'X-CSRFToken': '{{ csrf_token }}'
-                        },
-                        body: JSON.stringify({
-                            cart: cart,
-                            payment_id: data.orderID,
-                            payer_id: details.payer.payer_id
+        function initPayPalButton() {
+            paypal.Buttons({
+                createOrder: function (data, actions) {
+                    // Obtener el total final (que puede tener descuento)
+                    const totalText = document.getElementById('totalPrice').textContent;
+                    const total = parseFloat(totalText.replace('$', '').replace(',', '').replace('CLP', '').trim());
+                    
+                    console.log('Monto a pagar:', total);
+                    
+                    return actions.order.create({
+                        purchase_units: [{
+                            amount: {
+                                value: (total / 900).toFixed(2) // Convertir CLP a USD aproximadamente
+                            },
+                            description: "Carrito Ferremax"
+                        }]
+                    });
+                },
+                onApprove: function (data, actions) {
+                    return actions.order.capture().then(function (details) {
+                        // Construir el carrito para el backend
+                        const cartItems = [];
+                        
+                        {% if carrito %}
+                            {% for item in carrito %}
+                                cartItems.push({
+                                    id: "{{ item.id }}",
+                                    nombre: "{{ item.nombre|escapejs }}",
+                                    price: {{ item.precio|floatformat:2 }},
+                                    quantity: {{ item.cantidad }},
+                                    img: "{{ item.imagen|default:'' }}"
+                                });
+                            {% endfor %}
+                        {% endif %}
+                        
+                        console.log('Datos del carrito a enviar:', JSON.stringify(cartItems, null, 2));
+                        console.log('OrderID:', data.orderID);
+                        console.log('PayerID:', details.payer.payer_id);
+                        
+                        fetch('/ejecutar_pago/', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRFToken': '{{ csrf_token }}'
+                            },
+                            body: JSON.stringify({
+                                cart: cartItems,
+                                payment_id: data.orderID,
+                                payer_id: details.payer.payer_id
+                            })
                         })
-                    })
                         .then(response => response.json())
                         .then(data => {
                             if (data.success) {
-                                // Limpiar el carrito después de un pago exitoso
-                                localStorage.removeItem('cart');
-
+                                // Mostrar mensaje de éxito
+                                const successDiv = document.createElement('div');
+                                successDiv.className = 'alert alert-success mt-3';
+                                successDiv.innerHTML = '<i class="fas fa-check-circle me-2"></i>¡Pago procesado con éxito! Redirigiendo...';
+                                document.querySelector('.paypal-block').appendChild(successDiv);
+                                
                                 // Redirigir a la página de pedidos o mostrar confirmación
-                                window.location.href = '/pedidos/';
+                                setTimeout(() => {
+                                    window.location.href = '/pedidos/';
+                                }, 2000);
                             } else {
-                                alert('Ocurrió un error al procesar el pago: ' + data.error);
+                                // Mostrar mensaje de error
+                                const errorDiv = document.createElement('div');
+                                errorDiv.className = 'alert alert-danger mt-3';
+                                errorDiv.innerHTML = '<i class="fas fa-exclamation-circle me-2"></i>Error: ' + data.error;
+                                document.querySelector('.paypal-block').appendChild(errorDiv);
                             }
                         });
-                });
-            }
-        }).render('#paypal-button-container');
-
-        // Inicializar carrito al cargar la página
-        document.addEventListener('DOMContentLoaded', function () {
-            renderCart();
-        });
+                    });
+                }
+            }).render('#paypal-button-container');
+        }
     </script>
 </body>
 

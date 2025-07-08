@@ -11,6 +11,7 @@
 
 <body>
     <div class="sidebar">
+        <a href="{% url 'index' %}" style="background-color: #28a745; color: white; text-decoration: none; padding: 10px; border-radius: 6px; display: block; width: 90%; margin: 10px auto 15px auto; text-align: center; font-weight: bold;">Ir al inicio</a>
         <div class="page-title">Contador</div>
         <div class="logo">
             <svg width="90" height="90" viewBox="0 0 24 24" fill="none" class="user-logo-icon">
@@ -18,7 +19,8 @@
                 <path d="M12 14c-4 0-7 2-7 4.5V21h14v-2.5C19 16 16 14 12 14z" fill="#111" />
             </svg>
         </div>
-        <div class="username" id="sidebarUsername">felip</div>
+        <div class="username" id="sidebarUsername">{{ nombre_usuario }}</div>
+
         <a href="{% url 'inicio' %}" class="logout-link">Cerrar sesión</a>
     </div>
     <div class="main-content">
@@ -26,7 +28,6 @@
             <h1 class="titulo-gestion">GESTIÓN CONTADOR</h1>
             <div class="section">
                 <h1>Registro de Transacciones de Ventas</h1>
-                <button class="add-btn" onclick="agregarTransaccion()">Agregar Transacción</button>
                 <table id="tablaTransacciones">
                     <thead>
                         <tr>
@@ -39,142 +40,70 @@
                         </tr>
                     </thead>
                     <tbody>
-                        <!-- Las transacciones aparecerán aquí -->
+                        {% for transaccion in transacciones %}
+                        <tr>
+                            <td>{{ transaccion.id }}</td>
+                            <td>{{ transaccion.fecha|date:"d/m/Y" }}</td>
+                            <td>{{ transaccion.cliente }}</td>
+                            <td>{{ transaccion.producto }}</td>
+                            <td>{{ transaccion.cantidad }}</td>
+                            <td>${{ transaccion.total }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="6" class="no-data">No hay transacciones registradas</td>
+                        </tr>
+                        {% endfor %}
                     </tbody>
                 </table>
             </div>
             <div class="section">
                 <h1>Registro de Pagos y Finanzas</h1>
-                <button class="add-btn" onclick="agregarPago()">Registrar Pago</button>
                 <table id="tablaPagos">
                     <thead>
                         <tr>
                             <th>#</th>
                             <th>Fecha</th>
-                            <th>Descripción</th>
+                            <th>Pedido</th>
+                            <th>Método de Pago</th>
+                            <th>Estado</th>
                             <th>Monto ($)</th>
-                            <th>Tipo</th>
                         </tr>
                     </thead>
                     <tbody>
-                        <!-- Los pagos aparecerán aquí -->
+                        {% for pago in pagos %}
+                        <tr>
+                            <td>{{ pago.id_pago }}</td>
+                            <td>{{ pago.fecha|date:"d/m/Y" }}</td>
+                            <td>{{ pago.pedido }}</td>
+                            <td>{{ pago.metodo_pago }}</td>
+                            <td>{{ pago.estado_pago }}</td>
+                            <td>${{ pago.pedido.total }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="6" class="no-data">No hay pagos registrados</td>
+                        </tr>
+                        {% endfor %}
                     </tbody>
                 </table>
             </div>
             <div class="section">
                 <h1>Balance y Reportes Financieros</h1>
-                <button class="report-btn" onclick="generarBalance()">Generar Balance</button>
-                <button class="report-btn" style="margin-left:10px;background:#e74c3c;"
-                    onclick="vaciarBalances()">Vaciar Balances</button>
                 <div class="balance" id="balanceReporte">
-                    <!-- El balance aparecerá aquí -->
+                    <strong>Total Ventas:</strong> ${{ total_ventas }}<br>
+                    <strong>Total Ingresos:</strong> ${{ ingresos }}<br>
+                    <strong>Total Egresos:</strong> ${{ egresos }}<br>
+                    <hr>
+                    <strong>Balance Final:</strong> ${{ balance }}
                 </div>
 
-                <button class="report-btn" style="background:#e74c3c;" id="btnImprimirPDF">Descargar en pdf</button>
+                <button class="report-btn" id="btnImprimirPDF">Descargar en PDF</button>
             </div>
 
         </div>
     </div>
     <script>
-        let contador = 1;
-        let contadorPagos = 1;
-        let ventas = [];
-        let pagos = [];
-
-        function agregarTransaccion() {
-            const tbody = document.getElementById('tablaTransacciones').getElementsByTagName('tbody')[0];
-            const fecha = new Date().toLocaleDateString();
-            const cliente = prompt("Nombre del cliente:");
-            if (!cliente || cliente.trim() === "") {
-                alert("Debe ingresar el nombre del cliente.");
-                return;
-            }
-            const producto = prompt("Producto vendido:");
-            if (!producto || producto.trim() === "") {
-                alert("Debe ingresar el producto vendido.");
-                return;
-            }
-            const cantidad = prompt("Cantidad:");
-            if (!cantidad || isNaN(cantidad) || Number(cantidad) <= 0) {
-                alert("Debe ingresar una cantidad válida.");
-                return;
-            }
-            const total = prompt("Total ($):");
-            if (!total || isNaN(total) || Number(total) < 0) {
-                alert("Debe ingresar un total válido.");
-                return;
-            }
-            const fila = tbody.insertRow();
-            fila.insertCell(0).textContent = contador++;
-            fila.insertCell(1).textContent = fecha;
-            fila.insertCell(2).textContent = cliente;
-            fila.insertCell(3).textContent = producto;
-            fila.insertCell(4).textContent = cantidad;
-            fila.insertCell(5).textContent = total;
-            ventas.push({ fecha, cliente, producto, cantidad: Number(cantidad), total: Number(total) });
-        }
-
-        function agregarPago() {
-            const tbody = document.getElementById('tablaPagos').getElementsByTagName('tbody')[0];
-            const fecha = new Date().toLocaleDateString();
-            const descripcion = prompt("Descripción del pago:");
-            let tipo = "";
-            if (window.confirm("¿El pago es un INGRESO?\n(Si eliges 'Cancelar' será EGRESO)")) {
-                tipo = "Ingreso";
-            } else {
-                tipo = "Egreso";
-            }
-            if (!descripcion || descripcion.trim() === "") {
-                alert("Debe ingresar la descripción del pago.");
-                return;
-            }
-            const monto = prompt("Monto ($):");
-            if (!monto || isNaN(monto) || Number(monto) < 0) {
-                alert("Debe ingresar un monto válido.");
-                return;
-            }
-            const fila = tbody.insertRow();
-            fila.insertCell(0).textContent = contadorPagos++;
-            fila.insertCell(1).textContent = fecha;
-            fila.insertCell(2).textContent = descripcion;
-            fila.insertCell(3).textContent = monto;
-            fila.insertCell(4).textContent = tipo;
-            pagos.push({ fecha, descripcion, monto: Number(monto), tipo });
-        }
-
-        function generarBalance() {
-            if (ventas.length === 0 && pagos.length === 0) {
-                document.getElementById('balanceReporte').innerHTML = "<em>No hay datos para mostrar el balance.</em>";
-                return;
-            }
-            let totalVentas = ventas.reduce((sum, v) => sum + v.total, 0);
-            let ingresos = pagos.filter(p => p.tipo === "Ingreso").reduce((sum, p) => sum + p.monto, 0);
-            let egresos = pagos.filter(p => p.tipo === "Egreso").reduce((sum, p) => sum + p.monto, 0);
-            let balance = totalVentas + ingresos - egresos;
-
-            document.getElementById('balanceReporte').innerHTML = `
-                <strong>Total Ventas:</strong> $${totalVentas.toFixed(2)}<br>
-                <strong>Total Ingresos:</strong> $${ingresos.toFixed(2)}<br>
-                <strong>Total Egresos:</strong> $${egresos.toFixed(2)}<br>
-                <hr>
-                <strong>Balance Final:</strong> $${balance.toFixed(2)}
-            `;
-            document.getElementById('btnImprimirPDF').style.display = 'inline-block';
-        }
-
-        function vaciarBalances() {
-            if (confirm("¿Está seguro que desea vaciar todos los balances, ventas y pagos?")) {
-                ventas = [];
-                pagos = [];
-                contador = 1;
-                contadorPagos = 1;
-                document.getElementById('tablaTransacciones').getElementsByTagName('tbody')[0].innerHTML = "";
-                document.getElementById('tablaPagos').getElementsByTagName('tbody')[0].innerHTML = "";
-                document.getElementById('balanceReporte').innerHTML = "";
-                document.getElementById('btnImprimirPDF').style.display = 'none';
-            }
-        }
-
         // Lógica para descargar el balance como PDF
         document.getElementById('btnImprimirPDF').addEventListener('click', function() {
             const balanceDiv = document.getElementById('balanceReporte');
@@ -189,10 +118,8 @@
                 jsPDF: { orientation: 'portrait', unit: 'in', format: 'letter', compressPDF: true }
             }).save();
         });
-
     </script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
-
 
 
 

@@ -3,7 +3,7 @@ User: BDFerremas
 Password: BDFerremas
 
 Superusuario
-Username: Admin
+Username: usuario
 Email: a93423828@gmail.com
 Password: Eladmin123
 
@@ -37,3 +37,10 @@ App
     Name: Ferremax
     ID: AeFSoG-iJHJs-MCOwSrrVCKL7kMOo5WhE7IH9YaI8Znlcp5xZt5tfGvucUV7zGEDMl4n4bnLSgP3KXHx
     Password: ELAmJGuLqjKT3rSIy_-vq27xc3ssrEKl4oyVmniwO-n6O5cUoFmqatAu32qbIGCxJT1LTr7qPulj36MT
+
+
+Github commits:
+    git status
+    git add .
+    git status
+    git commit -m "mensaje"

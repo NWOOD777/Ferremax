@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tipos de Cambio</title>
+    <style>
+        body {
+            font-family: 'Roboto', Arial, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+            background-color: #f4f6f8;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .card {
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 15px;
+            margin-bottom: 20px;
+            background-color: #f9f9f9;
+        }
+        .currency {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid #eee;
+        }
+        .currency:last-child {
+            border-bottom: none;
+        }
+        .currency-name {
+            font-weight: bold;
+        }
+        .currency-value {
+            color: #007bff;
+        }
+        .timestamp {
+            font-size: 0.8em;
+            color: #888;
+            text-align: right;
+            margin-top: 20px;
+        }
+        .error {
+            color: #dc3545;
+            text-align: center;
+            padding: 20px;
+            background-color: #f8d7da;
+            border-radius: 5px;
+        }
+        .btn {
+            display: inline-block;
+            background-color: #007bff;
+            color: #fff;
+            padding: 10px 20px;
+            text-decoration: none;
+            border-radius: 5px;
+            margin-top: 15px;
+        }
+        .btn:hover {
+            background-color: #0056b3;
+        }
+        .text-center {
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Tipos de Cambio Actuales</h1>
+        
+        {% if success %}
+            <div class="card">
+                <div class="currency">
+                    <span class="currency-name">1 USD a CLP:</span>
+                    <span class="currency-value">{{ usd_to_clp|floatformat:2 }} CLP</span>
+                </div>
+                <div class="currency">
+                    <span class="currency-name">1 USD a EUR:</span>
+                    <span class="currency-value">{{ usd_to_eur|floatformat:2 }} EUR</span>
+                </div>
+                <div class="currency">
+                    <span class="currency-name">1 USD a GBP:</span>
+                    <span class="currency-value">{{ usd_to_gbp|floatformat:2 }} GBP</span>
+                </div>
+                <div class="timestamp">
+                    Última actualización: {{ timestamp }}
+                </div>
+            </div>
+            <div class="text-center">
+                <a href="{% url 'index' %}" class="btn">Volver a la Tienda</a>
+            </div>
+        {% else %}
+            <div class="error">
+                {{ error_message }}
+                <div class="text-center">
+                    <a href="{% url 'api_dolar' %}" class="btn">Intentar Nuevamente</a>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+    
+    <script>
+        // Aquí podríamos agregar funcionalidad JavaScript para actualizar la información en tiempo real
+    </script>
+</body>
+</html>

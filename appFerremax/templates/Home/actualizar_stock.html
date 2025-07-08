@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Actualizar Stock</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            line-height: 1.6;
+        }
+        form {
+            max-width: 500px;
+            margin: 0 auto;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            background-color: #f9f9f9;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input, select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        .success {
+            color: green;
+            font-weight: bold;
+            margin-top: 10px;
+        }
+        .error {
+            color: red;
+            font-weight: bold;
+            margin-top: 10px;
+        }
+        a {
+            color: #0066cc;
+            text-decoration: none;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+        .links {
+            margin-top: 20px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <h1>Actualizar Stock de Productos</h1>
+    
+    <div class="links">
+        <a href="{% url 'check_stock' %}">Ver Stock</a> | 
+        <a href="{% url 'index' %}">Volver al inicio</a>
+    </div>
+    
+    {% if mensaje %}
+    <div class="{% if exito %}success{% else %}error{% endif %}">
+        {{ mensaje }}
+    </div>
+    {% endif %}
+    
+    <form method="post">
+        {% csrf_token %}
+        <div class="form-group">
+            <label for="producto">Seleccione Producto:</label>
+            <select name="producto_id" id="producto" required>
+                <option value="">-- Seleccione --</option>
+                {% for producto in productos %}
+                <option value="{{ producto.id_producto }}">
+                    {{ producto.nombre_producto }} (Stock actual: {{ producto.stock_total }})
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+        
+        <div class="form-group">
+            <label for="stock">Nuevo Stock:</label>
+            <input type="number" name="nuevo_stock" id="stock" min="0" required>
+        </div>
+        
+        <button type="submit">Actualizar Stock</button>
+    </form>
+</body>
+</html>

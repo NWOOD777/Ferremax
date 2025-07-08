@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verificación de Stock</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            line-height: 1.6;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        .low-stock {
+            background-color: #ffe6e6;
+        }
+        .no-stock {
+            background-color: #ffcccc;
+        }
+        h1 {
+            color: #333;
+        }
+        a {
+            color: #0066cc;
+            text-decoration: none;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <h1>Verificación de Stock</h1>
+    
+    <a href="{% url 'index' %}">&larr; Volver al inicio</a>
+    
+    <h2>Productos</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Nombre</th>
+                <th>Stock</th>
+                <th>Precio</th>
+                <th>Descripción</th>
+                <th>Marca</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for producto in productos %}
+            <tr class="{% if producto.stock_total <= 0 %}no-stock{% elif producto.stock_total < 5 %}low-stock{% endif %}">
+                <td>{{ producto.id_producto }}</td>
+                <td>{{ producto.nombre_producto }}</td>
+                <td>{{ producto.stock_total }}</td>
+                <td>${{ producto.precio_unitario }}</td>
+                <td>{{ producto.descripcion }}</td>
+                <td>{{ producto.marca }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</body>
+</html>

@@ -25,6 +25,7 @@
     rel="stylesheet">
   {% load static %}
   <link rel="stylesheet" href="{% static 'css/index.css' %}">
+  <link rel="stylesheet" href="{% static 'css/currency-converter.css' %}">
 
 </head>
 
@@ -104,10 +105,10 @@
         <h4 class="d-flex justify-content-between align-items-center mb-3">
           <span class="text-primary">Search</span>
         </h4>
-        <form role="search" action="index.html" method="get" class="d-flex mt-3 gap-0">
-          <input class="form-control rounded-start rounded-0 bg-light" type="email"
-            placeholder="What are you looking for?" aria-label="What are you looking for?">
-          <button class="btn btn-dark rounded-end rounded-0" type="submit">Search</button>
+        <form role="search" action="{% url 'index' %}" method="get" class="d-flex mt-3 gap-0">
+          <input class="form-control rounded-start rounded-0 bg-light" type="text" name="search"
+            placeholder="Busque productos" aria-label="Buscar productos">
+          <button class="btn btn-primary rounded-end rounded-0" type="submit">Buscar</button>
         </form>
       </div>
     </div>
@@ -118,27 +119,29 @@
     <div class="container-fluid">
       <div class="row py-3 border-bottom">
 
-        <div class="col-sm-4 col-lg-3 text-center text-sm-start">
-          <div class="main-logo">
-            <a href="index.html">
+        <div class="col-sm-4 col-lg-3 text-center text-sm-start d-flex align-items-center">
+          <div class="main-logo me-2">
+            <a href="{% url 'index' %}" class="text-decoration-none">
+              <h1 class="text-primary fw-bold fs-3 mb-0">FERREMAX</h1>
             </a>
           </div>
+          <button id="currency-toggle-btn" class="btn btn-outline-primary btn-sm">
+            CLP → USD
+          </button>
         </div>
 
-        <div class="col-sm-6 offset-sm-2 offset-md-0 col-lg-5 d-none d-lg-block">
-          <div class="search-bar row bg-light p-2 my-2 rounded-4">
-            <div class="col-11 col-md-7">
-              <form id="search-form" class="text-center" action="index.html" method="post">
-                <input type="text" class="form-control border-0 bg-transparent"
-                  placeholder="Busque más de 20.000 productos" />
-              </form>
-            </div>
-            <div class="col-1">
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
-                <path fill="currentColor"
-                  d="M21.71 20.29L18 16.61A9 9 0 1 0 16.61 18l3.68 3.68a1 1 0 0 0 1.42 0a1 1 0 0 0 0-1.39ZM11 18a7 7 0 1 1 7-7a7 7 0 0 1-7 7Z" />
-              </svg>
-            </div>
+        <div class="col-sm-6 col-lg-5 d-flex align-items-center justify-content-center">
+          <div class="search-bar bg-light p-2 rounded-4 w-100">
+            <form id="search-form" class="d-flex align-items-center" action="{% url 'index' %}" method="get">
+              <input type="text" name="search" class="form-control border-0 bg-transparent flex-grow-1"
+                placeholder="Busque más de 20.000 productos" />
+              <button type="submit" class="btn btn-primary ms-2">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
+                  <path fill="currentColor"
+                    d="M21.71 20.29L18 16.61A9 9 0 1 0 16.61 18l3.68 3.68a1 1 0 0 0 1.42 0a1 1 0 0 0 0-1.39ZM11 18a7 7 0 1 1 7-7a7 7 0 0 1-7 7Z" />
+                </svg>
+              </button>
+            </form>
           </div>
         </div>
 
@@ -149,8 +152,6 @@
             <span class="fs-6 text-muted">para soporte?</span>
             <h5 class="mb-0">+56974932963</h5>
           </div>
-
-
 
           <div class="cart position-relative me-3">
             {% if request.session.tipo_usuario == "Bodeguero" %}
@@ -193,8 +194,7 @@
               </span>
             </button>
             {% else %}
-            <button class="border-0 bg-transparent" type="button" id="cartBtn" data-bs-toggle="offcanvas"
-              data-bs-target="#offcanvasCart" aria-controls="offcanvasCart">
+            <button class="border-0 bg-transparent" type="button" id="cartBtn">
               <a href="{% url 'carrito' %}">
                 <svg width="32" height="32" viewBox="0 0 24 24">
                   <use xlink:href="#cart"></use>
@@ -203,7 +203,11 @@
               <span id="cart-count"
                 class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger"
                 style="font-size: 0.8rem;">
-                0
+                {% if total_cart_items %}
+                  {{ total_cart_items }}
+                {% else %}
+                  0
+                {% endif %}
               </span>
             </button>
             {% endif %}
@@ -241,13 +245,24 @@
 
     <div class="container-fluid">
       <div class="row py-3">
-        <div class="d-flex  justify-content-center justify-content-sm-between align-items-center">
-          <nav class="main-menu d-flex navbar navbar-expand-lg">
+        <div class="d-flex justify-content-center justify-content-sm-between align-items-center w-100">
+          <nav class="main-menu d-flex navbar navbar-expand-lg w-100">
 
-            <button class="navbar-toggler" type="button" data-bs-toggle="offcanvas" data-bs-target="#offcanvasNavbar"
-              aria-controls="offcanvasNavbar">
-              <span class="navbar-toggler-icon"></span>
-            </button>
+            <div class="d-flex align-items-center">
+              <!-- Search button for mobile -->
+              <button class="btn btn-primary rounded-circle d-lg-none me-2" type="button" data-bs-toggle="offcanvas" data-bs-target="#offcanvasSearch"
+                aria-controls="offcanvasSearch">
+                <svg width="24" height="24" viewBox="0 0 24 24">
+                  <use xlink:href="#search"></use>
+                </svg>
+              </button>
+              
+              <!-- Menu toggle button -->
+              <button class="navbar-toggler" type="button" data-bs-toggle="offcanvas" data-bs-target="#offcanvasNavbar"
+                aria-controls="offcanvasNavbar">
+                <span class="navbar-toggler-icon"></span>
+              </button>
+            </div>
 
             <div class="offcanvas offcanvas-end" tabindex="-1" id="offcanvasNavbar"
               aria-labelledby="offcanvasNavbarLabel">
@@ -289,8 +304,8 @@
                   </li>
                 </ul>
               </div>
-
             </div>
+          </nav>
         </div>
       </div>
     </div>
@@ -326,46 +341,27 @@
           <div class="bootstrap-tabs product-tabs">
             <div class="tabs-header d-flex justify-content-between border-bottom my-5">
               <h3>Trending Products</h3>
-              <nav>
-                <div class="nav nav-tabs" id="nav-tab" role="tablist">
-                  <a href="#" class="nav-link text-uppercase fs-6 active" id="nav-all-tab" data-bs-toggle="tab"
-                    data-bs-target="#nav-all">Todo</a>
-                  <a href="#" class="nav-link text-uppercase fs-6" id="nav-fruits-tab" data-bs-toggle="tab"
-                    data-bs-target="#nav-fruits">Herramientas</a>
-                  <a href="#" class="nav-link text-uppercase fs-6" id="nav-juices-tab" data-bs-toggle="tab"
-                    data-bs-target="#nav-juices">Materiales</a>
-                </div>
-              </nav>
+              <div class="d-flex align-items-center">
+                <nav class="me-3">
+                  <div class="nav nav-tabs" id="nav-tab" role="tablist">
+                    <a href="#" class="nav-link text-uppercase fs-6 active" id="nav-all-tab" data-bs-toggle="tab"
+                      data-bs-target="#nav-all">Todo</a>
+                    <a href="#" class="nav-link text-uppercase fs-6" id="nav-fruits-tab" data-bs-toggle="tab"
+                      data-bs-target="#nav-fruits">Herramientas</a>
+                    <a href="#" class="nav-link text-uppercase fs-6" id="nav-juices-tab" data-bs-toggle="tab"
+                      data-bs-target="#nav-juices">Materiales</a>
+                  </div>
+                </nav>
+                <!-- Botón para cambiar moneda -->
+                <a href="#" class="btn btn-outline-primary" id="btn-change-currency">
+                  <span>CLP → USD</span>
+                  <span class="loading-spinner d-none" style="width: 1rem; height: 1rem; border-width: 0.1rem;"></span>
+                </a>
+              </div>
             </div>
             <div class="tab-content" id="nav-tabContent">
               <div class="tab-pane fade show active" id="nav-all" role="tabpanel" aria-labelledby="nav-all-tab">
                 <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-5 g-4">
-
-                  <!-- Producto 1 -->
-                  <!-- Example static product (Alargador) -->
-                  <div class="col">
-                    <div class="card border-0 shadow-sm h-100 d-flex flex-column">
-                      <img src="static/assets/images/imagenes_ferremas/alargador15m.png" class="card-img-top"
-                        alt="Product Image">
-                      <div class="card-body d-flex flex-column justify-content-between">
-                        <div>
-                          <h5 class="card-title">Alargador 15 metros</h5>
-                          <p class="card-text">$15390</p>
-                        </div>
-                        <div class="input-group product-qty mt-3">
-                          <button type="button" class="quantity-left-minus btn btn-danger btn-number"
-                            data-type="minus">-</button>
-                          <input type="text" class="form-control input-number text-center" value="1">
-                          <button type="button" class="quantity-right-plus btn btn-success btn-number"
-                            data-type="plus">+</button>
-                        </div>
-                        <button class="btn btn-primary mt-2 add-to-cart" data-name="Alargador 15 metros"
-                          data-price="15390" data-img="static/assets/images/imagenes_ferremas/alargador15m.png">
-                          Agregar al carrito
-                        </button>
-                      </div>
-                    </div>
-                  </div>
 
                   <!-- Dynamic products (e.g., Martillo naranjo) -->
                   {% for producto in productos %}
@@ -375,20 +371,21 @@
                       <div class="card-body d-flex flex-column justify-content-between">
                         <div>
                           <h5 class="card-title">{{ producto.nombre_producto }}</h5>
-                          <p class="card-text">${{ producto.precio_unitario|floatformat:0 }}</p>
+                          <p class="card-text product-price">${{ producto.precio_unitario|floatformat:0 }}</p>
                         </div>
-                        <div class="input-group product-qty mt-3">
-                          <button type="button" class="quantity-left-minus btn btn-danger btn-number"
-                            data-type="minus">-</button>
-                          <input type="text" class="form-control input-number text-center" value="1">
-                          <button type="button" class="quantity-right-plus btn btn-success btn-number"
-                            data-type="plus">+</button>
-                        </div>
-                        <button class="btn btn-primary mt-2 add-to-cart w-100"
-                          data-name="{{ producto.nombre_producto }}" data-price="{{ producto.precio_unitario }}"
-                          data-img="{{ producto.imagen.url }}">
-                          Agregar al carrito
-                        </button>
+                        <form action="{% url 'agregar_al_carrito' producto.id_producto %}" method="post" class="mt-3">
+                          {% csrf_token %}
+                          <div class="input-group product-qty mb-2">
+                            <button type="button" class="quantity-left-minus btn btn-danger btn-number" 
+                              onclick="updateQuantity(this, -1)">-</button>
+                            <input type="number" name="cantidad" class="form-control input-number text-center" value="1" min="1">
+                            <button type="button" class="quantity-right-plus btn btn-success btn-number"
+                              onclick="updateQuantity(this, 1)">+</button>
+                          </div>
+                          <button type="submit" class="btn btn-primary mt-2 add-to-cart w-100">
+                            Agregar al carrito
+                          </button>
+                        </form>
                       </div>
                     </div>
                   </div>
@@ -449,8 +446,7 @@
           <div class="row">
             <div class="col-md-6 p-5">
               <div class="section-header">
-                <h2 class="section-title display-4">Obten <span class="text-primary">25% descuento</span> en tu primera
-                  compra</h2>
+                <h2 class="section-title display-4">Obten <span class="text-primary">25% descuento</span> en tu primera compra</h2>
               </div>
               <p>¡Aprovecha esta oportunidad única!
                 Regístrate con tu nombre y correo para recibir un 25% de descuento exclusivo en tu primera compra. Es
@@ -657,61 +653,28 @@
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/js/bootstrap.bundle.min.js"
     integrity="sha384-ENjdO4Dr2bkBIFxQpeoA6DQD1KQkQ1p2eQ9uvj3DHzlA94l+I1P6tuKg3Gk2z04h"
     crossorigin="anonymous"></script>
-
+  
+  {% load static %}
+  <script src="{% static 'js/currency-converter.js' %}"></script>
+  
   <script>
-    function updateCartCount() {
-      let cart = JSON.parse(localStorage.getItem('cart')) || [];
-      let count = cart.reduce((sum, item) => sum + item.quantity, 0);
-      const badge = document.getElementById('cart-count');
-      if (badge) badge.textContent = count;
+    // Función para actualizar la cantidad en los inputs
+    function updateQuantity(button, change) {
+      const input = button.parentElement.querySelector('input');
+      let value = parseInt(input.value) || 1;
+      
+      value += change;
+      if (value < 1) value = 1;
+      
+      input.value = value;
     }
-
-    function addToCart(product) {
-      let cart = JSON.parse(localStorage.getItem('cart')) || [];
-      const index = cart.findIndex(item => item.name === product.name);
-      if (index > -1) {
-        cart[index].quantity += product.quantity;
-      } else {
-        cart.push(product);
-      }
-      localStorage.setItem('cart', JSON.stringify(cart));
-      updateCartCount();
-      alert('Producto agregado al carrito');
-    }
-
-    document.querySelectorAll('.card').forEach(function (card) {
-  const minusBtn = card.querySelector('.quantity-left-minus');
-  const plusBtn = card.querySelector('.quantity-right-plus');
-  const qtyInput = card.querySelector('input.input-number');
-
-  if (minusBtn && plusBtn && qtyInput) {
-    minusBtn.addEventListener('click', function () {
-      let value = parseInt(qtyInput.value) || 1;
-      if (value > 1) qtyInput.value = value - 1;
+    
+    // Inicializar valores al cargar la página
+    document.addEventListener('DOMContentLoaded', function() {
+      console.log('Página cargada correctamente');
     });
-    plusBtn.addEventListener('click', function () {
-      let value = parseInt(qtyInput.value) || 1;
-      qtyInput.value = value + 1;
-    });
-  }
-});
-
-    document.querySelectorAll('.add-to-cart').forEach(function (btn) {
-      btn.addEventListener('click', function () {
-        const card = btn.closest('.card');
-        const name = btn.getAttribute('data-name');
-        const price = parseInt(btn.getAttribute('data-price'));
-        const img = btn.getAttribute('data-img');
-        let quantity = 1;
-        const qtyInput = card.querySelector('input.input-number');
-        if (qtyInput) quantity = parseInt(qtyInput.value) || 1;
-        addToCart({ name, price, img, quantity });
-      });
-    });
-
-    // Actualizar el contador al cargar la página
-    updateCartCount();
   </script>
+
 </body>
 
 </html>
