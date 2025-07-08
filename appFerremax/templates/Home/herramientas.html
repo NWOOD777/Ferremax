@@ -1,0 +1,230 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Herramientas de Ferretería</title>
+    <link rel="stylesheet" href="{% static 'CSS/herramientas.css' %}">
+    <style>
+        .header-bar {
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            padding: 18px 32px 0 32px;
+            background: none;
+        }
+        .user-name {
+            font-weight: bold;
+            color: #2980b9;
+            margin-right: 24px;
+        }
+        .cart-link {
+            position: relative;
+            display: flex;
+            align-items: center;
+            text-decoration: none;
+            color: #222;
+            font-size: 1.2em;
+        }
+        .cart-icon {
+            width: 28px;
+            height: 28px;
+            margin-right: 6px;
+        }
+        .cart-count {
+            position: absolute;
+            top: -8px;
+            right: -10px;
+            background: #e74c3c;
+            color: #fff;
+            border-radius: 50%;
+            font-size: 0.9em;
+            padding: 2px 7px;
+            font-weight: bold;
+        }
+        .productos-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 32px;
+            justify-content: center;
+            margin-top: 32px;
+        }
+        .producto-card {
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            width: 270px;
+            padding: 20px 16px;
+            text-align: center;
+            transition: box-shadow 0.2s;
+        }
+        .producto-card:hover {
+            box-shadow: 0 4px 16px rgba(41,128,185,0.15);
+        }
+        .producto-card img {
+            max-width: 100px;
+            margin-bottom: 12px;
+        }
+        .producto-nombre {
+            font-weight: bold;
+            color: #2980b9;
+            margin-bottom: 8px;
+        }
+        .producto-descripcion {
+            font-size: 0.97em;
+            color: #555;
+            margin-bottom: 10px;
+        }
+        .producto-precio {
+            font-size: 1.1em;
+            color: #27ae60;
+            font-weight: bold;
+        }
+        .cantidad-control {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 10px;
+            gap: 8px;
+        }
+        .cantidad-btn {
+            background: #2980b9;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            width: 28px;
+            height: 28px;
+            font-size: 1.2em;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .cantidad-btn:hover {
+            background: #145a8a;
+        }
+        .cantidad-input {
+            width: 36px;
+            text-align: center;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 1em;
+        }
+        .agregar-btn {
+            background: #27ae60;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            padding: 8px 18px;
+            font-size: 1em;
+            cursor: pointer;
+            margin-top: 8px;
+            transition: background 0.2s;
+        }
+        .agregar-btn:hover {
+            background: #219150;
+        }
+    </style>
+    <script>
+        let carritoCount = 0;
+        function cambiarCantidad(id, delta) {
+            const input = document.getElementById('cantidad-' + id);
+            let valor = parseInt(input.value) + delta;
+            if (valor < 1) valor = 1;
+            input.value = valor;
+        }
+        function agregarAlCarrito(nombre) {
+            const cantidad = parseInt(document.getElementById('cantidad-' + nombre).value);
+            carritoCount += cantidad;
+            document.getElementById('cart-count').textContent = carritoCount;
+            alert('Agregado ' + cantidad + ' unidad(es) de ' + nombre + ' al carrito.');
+            // Aquí puedes hacer una petición AJAX para agregar al carrito en backend
+        }
+    </script>
+</head>
+<body>
+    <div class="header-bar">
+        <span class="user-name">{{ request.user.username }}</span>
+        <a href="{% url 'carrito' %}" class="cart-link">
+            <img src="https://cdn-icons-png.flaticon.com/512/1170/1170678.png" alt="Carrito" class="cart-icon">
+            <span class="cart-count" id="cart-count">0</span>
+        </a>
+    </div>
+    <div class="container">
+        <h1>Herramientas de Ferretería</h1>
+        <div class="productos-grid">
+            <div class="producto-card">
+                <img src="/media/productos/martillo-para-cimbra-truper-16-onzas-mcim-16-10754-1.jpg" alt="Martillo">
+                <div class="producto-nombre">Martillo</div>
+                <div class="producto-descripcion">Martillo para cimbra Truper 16 onzas, mango de madera.</div>
+                <div class="producto-precio">$8.990</div>
+                <div class="cantidad-control">
+                    <button class="cantidad-btn" onclick="cambiarCantidad('martillo', -1)">-</button>
+                    <input type="text" id="cantidad-martillo" class="cantidad-input" value="1" readonly>
+                    <button class="cantidad-btn" onclick="cambiarCantidad('martillo', 1)">+</button>
+                </div>
+                <button class="agregar-btn" onclick="agregarAlCarrito('martillo')">Agregar al carrito</button>
+            </div>
+            <div class="producto-card">
+                <img src="/media/productos/alicate-de-corte-diagonal-5-truper-17311-mango-pvc.jpg" alt="Alicate">
+                <div class="producto-nombre">Alicate de corte</div>
+                <div class="producto-descripcion">Alicate de corte diagonal 5" Truper, mango PVC.</div>
+                <div class="producto-precio">$5.490</div>
+                <div class="cantidad-control">
+                    <button class="cantidad-btn" onclick="cambiarCantidad('alicate', -1)">-</button>
+                    <input type="text" id="cantidad-alicate" class="cantidad-input" value="1" readonly>
+                    <button class="cantidad-btn" onclick="cambiarCantidad('alicate', 1)">+</button>
+                </div>
+                <button class="agregar-btn" onclick="agregarAlCarrito('alicate')">Agregar al carrito</button>
+            </div>
+            <div class="producto-card">
+                <img src="/media/productos/enchufe.jpg" alt="Enchufe">
+                <div class="producto-nombre">Enchufe</div>
+                <div class="producto-descripcion">Enchufe industrial de alta resistencia.</div>
+                <div class="producto-precio">$2.990</div>
+                <div class="cantidad-control">
+                    <button class="cantidad-btn" onclick="cambiarCantidad('enchufe', -1)">-</button>
+                    <input type="text" id="cantidad-enchufe" class="cantidad-input" value="1" readonly>
+                    <button class="cantidad-btn" onclick="cambiarCantidad('enchufe', 1)">+</button>
+                </div>
+                <button class="agregar-btn" onclick="agregarAlCarrito('enchufe')">Agregar al carrito</button>
+            </div>
+            <div class="producto-card">
+                <img src="/media/productos/martillo-para-cimbra-truper-16-onzas-mcim-16-10754-1_XQPolOY.jpg" alt="Martillo goma">
+                <div class="producto-nombre">Martillo de goma</div>
+                <div class="producto-descripcion">Martillo de goma para trabajos delicados, mango ergonómico.</div>
+                <div class="producto-precio">$7.990</div>
+                <div class="cantidad-control">
+                    <button class="cantidad-btn" onclick="cambiarCantidad('martillogoma', -1)">-</button>
+                    <input type="text" id="cantidad-martillogoma" class="cantidad-input" value="1" readonly>
+                    <button class="cantidad-btn" onclick="cambiarCantidad('martillogoma', 1)">+</button>
+                </div>
+                <button class="agregar-btn" onclick="agregarAlCarrito('martillogoma')">Agregar al carrito</button>
+            </div>
+            <div class="producto-card">
+                <img src="/media/productos/OIP_IEv7QjW.jpg" alt="Destornillador">
+                <div class="producto-nombre">Destornillador</div>
+                <div class="producto-descripcion">Destornillador punta cruz, mango antideslizante.</div>
+                <div class="producto-precio">$3.990</div>
+                <div class="cantidad-control">
+                    <button class="cantidad-btn" onclick="cambiarCantidad('destornillador', -1)">-</button>
+                    <input type="text" id="cantidad-destornillador" class="cantidad-input" value="1" readonly>
+                    <button class="cantidad-btn" onclick="cambiarCantidad('destornillador', 1)">+</button>
+                </div>
+                <button class="agregar-btn" onclick="agregarAlCarrito('destornillador')">Agregar al carrito</button>
+            </div>
+            <div class="producto-card">
+                <img src="/media/productos/OIP_kuOZogA.jpg" alt="Llave inglesa">
+                <div class="producto-nombre">Llave inglesa</div>
+                <div class="producto-descripcion">Llave inglesa ajustable, acero reforzado.</div>
+                <div class="producto-precio">$6.990</div>
+                <div class="cantidad-control">
+                    <button class="cantidad-btn" onclick="cambiarCantidad('llave', -1)">-</button>
+                    <input type="text" id="cantidad-llave" class="cantidad-input" value="1" readonly>
+                    <button class="cantidad-btn" onclick="cambiarCantidad('llave', 1)">+</button>
+                </div>
+                <button class="agregar-btn" onclick="agregarAlCarrito('llave')">Agregar al carrito</button>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

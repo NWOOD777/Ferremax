@@ -16,6 +16,6 @@ sqlparse==0.5.3
 typing_extensions==4.13.2
 tzdata==2025.2
 urllib3==2.4.0
-fastapi==0.111.0
+fastapi==0.110.0
 uvicorn==0.30.1
-djangorestframework
+pydantic==2.6.4

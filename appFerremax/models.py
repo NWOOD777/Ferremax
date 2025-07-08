@@ -94,7 +94,9 @@ class Producto(models.Model):
     precio_unitario = models.DecimalField(max_digits=10, decimal_places=2)
     stock_total = models.IntegerField()
     sucursal = models.ForeignKey(Sucursal, on_delete=models.CASCADE)
-    imagen = models.ImageField(upload_to='productos/', null=True, blank=True)
+    imagen = models.ImageField(upload_to='productos/', null=True, blank=True, default='imagenes_ferremas/nostock.png')
+    creado_por = models.ForeignKey(Empleado, on_delete=models.SET_NULL, null=True, related_name='productos_creados')
+    fecha_creacion = models.DateTimeField(auto_now_add=True, null=True)
     
     def __str__(self):
         return self.nombre_producto
