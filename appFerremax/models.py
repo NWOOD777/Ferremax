@@ -95,8 +95,6 @@ class Producto(models.Model):
     stock_total = models.IntegerField()
     sucursal = models.ForeignKey(Sucursal, on_delete=models.CASCADE)
     imagen = models.ImageField(upload_to='productos/', null=True, blank=True)
-    creado_por = models.ForeignKey(Empleado, on_delete=models.SET_NULL, null=True, related_name='productos_creados')
-    fecha_creacion = models.DateTimeField(auto_now_add=True, null=True)
     
     def __str__(self):
         return self.nombre_producto

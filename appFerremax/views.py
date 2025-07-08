@@ -10,7 +10,9 @@ from django.utils.crypto import get_random_string
 from django.conf import settings
 from django.views.decorators.csrf import csrf_exempt
 import requests
-
+from rest_framework import generics
+from .models import Producto
+from .serializers import ProductoSerializer
 
 from appFerremax.forms import ProductoForm
 from .models import Cargo, Cliente, Empleado, Sucursal, Producto, Pedido, DetalleProducto, MetodoPago, EstadoPago, Pago
@@ -616,7 +618,7 @@ def cerrar_sesion(request):
 from django.shortcuts import render, redirect
 from .forms import ProductoForm
 from .models import Producto
-
+"""
 def crearproductos(request):
     if request.method == 'POST':
         form = ProductoForm(request.POST, request.FILES)
@@ -648,7 +650,7 @@ def crearproductos(request):
         form = ProductoForm()
     
     return render(request, 'Home/crearproductos.html', {'form': form})
-
+"""
 def mis_productos(request):
     if 'nombre_usuario' not in request.session or 'tipo_usuario' not in request.session:
         return redirect('inicio')
@@ -675,7 +677,7 @@ def mis_productos(request):
         })
     except Empleado.DoesNotExist:
         return redirect('index')
-
+"""
 def modificar_producto(request, id_producto):
     try:
         producto = Producto.objects.get(id_producto=id_producto)
@@ -758,7 +760,7 @@ def eliminar_producto(request, id_producto):
         
     except Producto.DoesNotExist:
         return redirect('mis_productos')
-
+"""
 def recuperar_contrasena(request):
     
     errors = []
@@ -895,3 +897,12 @@ def remove_from_cart(request, id_producto):
     return redirect('carrito')
 
 
+
+
+class ProductoListCreate(generics.ListCreateAPIView):
+    queryset = Producto.objects.all()
+    serializer_class = ProductoSerializer
+
+class ProductoRetrieveUpdateDestroy(generics.RetrieveUpdateDestroyAPIView):
+    queryset = Producto.objects.all()
+    serializer_class = ProductoSerializer

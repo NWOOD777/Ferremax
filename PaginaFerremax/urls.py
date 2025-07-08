@@ -21,8 +21,8 @@ from django.conf.urls.static import static
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('', include('appFerremax.urls')),
-    path('', include('appFerremax.api_urls')),
+    path('', include('appFerremax.urls')),         
+    path('api/', include('appFerremax.api_urls')),  
 ]
 
 if settings.DEBUG:
