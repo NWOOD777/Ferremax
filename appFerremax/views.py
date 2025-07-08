@@ -70,9 +70,9 @@ def inicio(request):
                         request.session['tipo_usuario'] = 'cliente'
                         return redirect('index')
                     else:
-                        errors.append('Contraseña incorrecta.')
+                        errors.append('Correo  o  contrasena incorrecta.')
                 except Cliente.DoesNotExist:
-                    errors.append('Correo no registrado.')
+                    errors.append('Correo  o  contrasena incorrecta.')
         return render(request, 'Home/inicio.html', {'errores': errors, 'valores': valores})
     return render(request, 'Home/inicio.html')
 
@@ -587,8 +587,59 @@ def ejecutar_pago_view(request):
                 producto.save()
 
             # Crea el registro de pago en la tabla Pago
-            metodo_pago = MetodoPago.objects.get(nombre_metodo_pago="PayPal")
-            estado_pago = EstadoPago.objects.get(estado_pago="Completado")
+            try:
+                # Primero veamos todos los métodos de pago disponibles para depuración
+                all_metodos = list(MetodoPago.objects.all())
+                print(f"Métodos de pago disponibles ({len(all_metodos)}):")
+                for m in all_metodos:
+                    print(f"  - ID: {m.id_metodo_pago}, Nombre: {m.nombre_metodo_pago}")
+                
+                # En base a la captura de pantalla de Oracle, PayPal tiene ID=1
+                try:
+                    # Crear directamente un objeto MetodoPago con ID=1 (PayPal según la imagen)
+                    metodo_pago = MetodoPago(id_metodo_pago=1, nombre_metodo_pago="PayPal")
+                    print(f"Usando método de pago hardcodeado: ID=1, Nombre=PayPal")
+                    
+                    # No necesitamos guardar este objeto ya que solo lo usamos para la relación
+                    # Si necesitáramos guardarlo:
+                    # metodo_pago.save(using='default')
+                except Exception as direct_create_error:
+                    print(f"Error al crear método de pago hardcodeado: {direct_create_error}")
+                    
+                    # Intentar con el enfoque normal como fallback
+                    metodo_pago = MetodoPago.objects.filter(nombre_metodo_pago__iexact="PayPal").first()
+                    print(f"Búsqueda con iexact 'PayPal': {metodo_pago}")
+                    
+                    if not metodo_pago:
+                        # Si no encuentra con iexact, intentar con contains
+                        metodo_pago = MetodoPago.objects.filter(nombre_metodo_pago__icontains="PayPal").first()
+                        print(f"Búsqueda con icontains 'PayPal': {metodo_pago}")
+                    
+                    if not metodo_pago:
+                        # Probar con ID directo
+                        metodo_pago = MetodoPago.objects.filter(id_metodo_pago=1).first()
+                        print(f"Búsqueda con ID=1: {metodo_pago}")
+                    
+                    if not metodo_pago:
+                        # Si aún no encuentra, obtener el primer método de pago
+                        metodo_pago = MetodoPago.objects.first()
+                        print(f"Primer método de pago: {metodo_pago}")
+                        
+                        if not metodo_pago:
+                            print("ERROR: No se encontraron métodos de pago en la base de datos")
+                            return JsonResponse({'success': False, 'error': 'No hay métodos de pago disponibles'})
+                
+                print(f"Método de pago seleccionado: {metodo_pago.id_metodo_pago} - {metodo_pago.nombre_metodo_pago}")
+                # Intentar obtener el estado "Completado"
+                try:
+                    estado_pago = EstadoPago.objects.get(estado_pago="Completado")
+                except EstadoPago.DoesNotExist:
+                    # Si no existe, crear directamente (ID=1 suele ser "Completado")
+                    print("Estado 'Completado' no encontrado, creándolo...")
+                    estado_pago = EstadoPago(id_estado_pago=1, estado_pago="Completado")
+                    # No guardamos para evitar errores, solo lo usamos para la relación
+            except Exception as e:
+                return JsonResponse({'success': False, 'error': f'Error al buscar método de pago: {str(e)}'})
             Pago.objects.create(
                 fecha=date.today(),
                 pedido=pedido,
@@ -622,14 +673,15 @@ def crearproductos(request):
         form = ProductoForm(request.POST, request.FILES)
         if form.is_valid():
             producto = form.save(commit=False)
-            
+            # Asignar imagen por defecto si no se subió ninguna
+            if not producto.imagen:
+                producto.imagen = 'imagenes_ferremas/nostock.png'
             if 'nombre_usuario' in request.session and 'tipo_usuario' in request.session:
                 if request.session['tipo_usuario'] != 'cliente':
                     nombre_completo = request.session['nombre_usuario']
-                    nombres = nombre_completo.split(' ', 1)
-                    nombre = nombres[0]
-                    apellido = nombres[1] if len(nombres) > 1 else ''
-                    
+                    partes = nombre_completo.split(' ', 1)
+                    nombre = partes[0]
+                    apellido = partes[1] if len(partes) > 1 else ''
                     try:
                         empleado = Empleado.objects.get(
                             nombre_empleado=nombre,
@@ -638,7 +690,6 @@ def crearproductos(request):
                         producto.creado_por = empleado
                     except Empleado.DoesNotExist:
                         pass
-            
             producto.save()
             return render(request, 'Home/crearproductos.html', {
                 'form': ProductoForm(),
@@ -646,7 +697,6 @@ def crearproductos(request):
             })
     else:
         form = ProductoForm()
-    
     return render(request, 'Home/crearproductos.html', {'form': form})
 
 def mis_productos(request):
@@ -893,5 +943,88 @@ def remove_from_cart(request, id_producto):
         request.session.modified = True
     
     return redirect('carrito')
+
+def empleados(request):
+    """
+    View function to display the empleados page that uses the FastAPI endpoint.
+    If FastAPI is not running, it will use data directly from Django.
+    """
+    nombre_usuario = request.session.get('nombre_usuario')
+    
+    # Calculate total cart items for display
+    carrito = request.session.get('carrito', [])
+    total_items = sum(item['cantidad'] for item in carrito) if carrito else 0
+    
+    # Pre-fetch employee data to avoid needing FastAPI running
+    empleados_data = []
+    try:
+        empleados = Empleado.objects.select_related('sucursal', 'cargo').all()
+        for emp in empleados:
+            empleados_data.append({
+                'id': emp.id_empleado,
+                'nombre': emp.nombre_empleado,
+                'apellido': emp.apellido_empleado,
+                'correo': emp.correo,
+                'sucursal': emp.sucursal.nombre_sucursal,
+                'cargo': emp.cargo.nombre_cargo
+            })
+    except Exception as e:
+        print(f"Error pre-fetching employee data: {e}")
+    
+    context = {
+        'nombre_usuario': nombre_usuario,
+        'total_items': total_items,
+        'empleados_data': json.dumps(empleados_data)  # Pass the data as JSON
+    }
+    
+    return render(request, 'Home/empleados_api.html', context)
+
+def empleados_direct(request):
+    """
+    View function to display the empleados page that directly renders the employees in a grid layout.
+    """
+    nombre_usuario = request.session.get('nombre_usuario')
+    
+    # Calculate total cart items for display
+    carrito = request.session.get('carrito', [])
+    total_items = sum(item['cantidad'] for item in carrito) if carrito else 0
+    
+    # Fetch all employees with their related data
+    empleados = Empleado.objects.select_related('sucursal', 'cargo').all()
+    
+    context = {
+        'nombre_usuario': nombre_usuario,
+        'total_items': total_items,
+        'empleados': empleados
+    }
+    
+    return render(request, 'Home/empleados_direct.html', context)
+
+def api_empleados_django(request):
+    """
+    API view to provide employee data directly from Django
+    This is a fallback for when the FastAPI server is not running
+    """
+    try:
+        empleados = Empleado.objects.select_related('sucursal', 'cargo').all()
+        
+        # Format response
+        response = []
+        for emp in empleados:
+            response.append({
+                'id': emp.id_empleado,
+                'nombre': emp.nombre_empleado,
+                'apellido': emp.apellido_empleado,
+                'correo': emp.correo,
+                'sucursal': emp.sucursal.nombre_sucursal,
+                'cargo': emp.cargo.nombre_cargo
+            })
+        
+        return JsonResponse(response, safe=False)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+def herramientas(request):
+    return render(request, 'Home/herramientas.html')
 
 

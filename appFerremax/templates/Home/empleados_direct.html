@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Empleados - Ferremax</title>
+    {% load static %}
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            font-family: 'Nunito', sans-serif;
+            background-color: #f8f9fa;
+            color: #212529;
+            padding-top: 20px;
+            padding-bottom: 100px;
+        }
+        
+        .header {
+            background-color: #4C71AF;
+            color: white;
+            padding: 30px 0;
+            margin-bottom: 40px;
+            border-radius: 0 0 15px 15px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        
+        .header h1 {
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+        
+        .header p {
+            font-size: 18px;
+            opacity: 0.9;
+        }
+        
+        .employee-card {
+            border-radius: 10px;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.08);
+            transition: transform 0.2s, box-shadow 0.2s;
+            height: 100%;
+            margin-bottom: 15px;
+            overflow: hidden;
+            background: white;
+            border: none;
+        }
+        
+        .employee-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 6px 15px rgba(0,0,0,0.15);
+        }
+        
+        .employee-card .card-header {
+            background-color: #4C71AF;
+            color: white;
+            font-weight: 600;
+            border-radius: 10px 10px 0 0;
+        }
+        
+        .employee-card .card-footer {
+            background-color: rgba(76, 113, 175, 0.1);
+            font-size: 14px;
+        }
+        
+        .btn-return {
+            display: inline-flex;
+            align-items: center;
+            background-color: #4C71AF;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 5px;
+            text-decoration: none;
+            transition: background-color 0.2s;
+            margin-bottom: 20px;
+            font-weight: bold;
+        }
+        
+        .btn-return:hover {
+            background-color: #395988;
+            color: white;
+        }
+        
+        .btn-return i {
+            margin-right: 8px;
+        }
+        
+        .employee-avatar {
+            width: 70px;
+            height: 70px;
+            background-color: #e9ecef;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 15px;
+            color: #4C71AF;
+            font-size: 30px;
+            border: 3px solid rgba(76, 113, 175, 0.2);
+        }
+        
+        .badge-cargo {
+            background-color: #6c757d;
+            color: white;
+            font-weight: 500;
+            padding: 5px 10px;
+            border-radius: 20px;
+        }
+        
+        .badge-sucursal {
+            background-color: #198754;
+            color: white;
+            font-weight: 500;
+            padding: 5px 10px;
+            border-radius: 20px;
+        }
+        
+        /* Responsive styling */
+        @media (max-width: 767px) {
+            .employee-card {
+                margin-bottom: 20px;
+            }
+        }
+        
+        @media (min-width: 768px) and (max-width: 991px) {
+            .card-body {
+                padding: 1rem 0.5rem;
+            }
+            
+            .employee-avatar {
+                width: 60px;
+                height: 60px;
+                font-size: 24px;
+                margin-bottom: 10px;
+            }
+            
+            .card-text {
+                font-size: 0.85rem;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <!-- Back button -->
+        <a href="/" class="btn-return">
+            <i class="fas fa-arrow-left"></i> Volver a la página principal
+        </a>
+        
+        <!-- Header -->
+        <div class="header text-center">
+            <h1><i class="fas fa-users me-2"></i>Directorio de Empleados</h1>
+            <p>Información de nuestros colaboradores</p>
+        </div>
+        
+        <!-- Direct Grid Layout for Employees -->
+        <div class="row">
+            {% if empleados %}
+                {% for emp in empleados %}
+                <div class="col-sm-6 col-md-3">
+                    <div class="card employee-card">
+                        <div class="card-header text-center py-3">
+                            {{ emp.nombre_empleado }} {{ emp.apellido_empleado }}
+                        </div>
+                        <div class="card-body text-center">
+                            <div class="employee-avatar">
+                                {{ emp.nombre_empleado.0 }}{{ emp.apellido_empleado.0 }}
+                            </div>
+                            <p class="card-text mb-1">
+                                <i class="fas fa-envelope me-1"></i> {{ emp.correo }}
+                            </p>
+                            <div class="mt-3">
+                                <span class="badge badge-cargo me-1">
+                                    <i class="fas fa-id-badge me-1"></i> {{ emp.cargo.nombre_cargo }}
+                                </span>
+                            </div>
+                        </div>
+                        <div class="card-footer text-center">
+                            <span class="badge badge-sucursal">
+                                <i class="fas fa-building me-1"></i> {{ emp.sucursal.nombre_sucursal }}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <div class="col-12 text-center">
+                    <div class="alert alert-info my-5">
+                        <i class="fas fa-info-circle me-2"></i>No se encontraron empleados en el sistema.
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+    
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

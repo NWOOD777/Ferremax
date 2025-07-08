@@ -491,7 +491,9 @@
                 return response.json();
             })
             .then(data => {
-                if (!data.success) {
+                console.log('Respuesta del servidor:', data);
+                // Check if success property exists and is false, otherwise proceed
+                if (data.hasOwnProperty('success') && !data.success) {
                     throw new Error(data.error || 'Error al actualizar el carrito');
                 }
                 
@@ -531,8 +533,9 @@
             // Calcular total y contar productos
             document.querySelectorAll('.cart-item').forEach(item => {
                 const subtotalText = item.querySelector('.cart-item-subtotal p').textContent;
-                const subtotal = parseFloat(subtotalText.replace('$', '').replace(' CLP', '').replace(',', ''));
-                const quantity = parseInt(item.querySelector('.qty-input').value);
+                // Improved price parsing to correctly handle all formats
+                const subtotal = parseFloat(subtotalText.replace(/[^\d]/g, '')) || 0;
+                const quantity = parseInt(item.querySelector('.qty-input').value) || 0;
                 
                 total += subtotal;
                 totalItems += quantity;
@@ -561,7 +564,10 @@
             // Limpiar el contenido actual del cart-summary
             cartSummary.innerHTML = '';
             
-            // Crear el bloque de descuento
+            // Crear el bloque de descuento (asegurar que los valores son números)
+            discountAmount = parseFloat(discountAmount) || 0;
+            totalItems = parseInt(totalItems) || 0;
+            
             const discountBlock = document.createElement('div');
             discountBlock.className = 'discount-block alert alert-success';
             discountBlock.innerHTML = `
@@ -572,7 +578,7 @@
                         <p class="m-0 small">Descuento aplicado por tener ${totalItems} productos</p>
                     </div>
                     <span class="discount-amount">
-                        -$${discountAmount.toFixed(0)} CLP
+                        -$${Math.round(discountAmount)} CLP
                     </span>
                 </div>
             `;
@@ -580,13 +586,15 @@
             // Agregar el bloque de descuento al resumen del carrito
             cartSummary.appendChild(discountBlock);
             
-            // Crear el bloque de total con descuento
+            // Crear el bloque de total con descuento (asegurar que el valor es un número)
+            totalAfterDiscount = parseFloat(totalAfterDiscount) || 0;
+            
             const totalAfterDiscountBlock = document.createElement('div');
             totalAfterDiscountBlock.className = 'total-block total-after-discount';
             totalAfterDiscountBlock.innerHTML = `
                 <span><i class="fas fa-money-bill-wave me-2"></i>Total:</span>
                 <span class="total-price" id="totalPrice">
-                    $${totalAfterDiscount.toFixed(0)} CLP
+                    $${Math.round(totalAfterDiscount)} CLP
                 </span>
             `;
             
@@ -623,13 +631,15 @@
             // Agregar el mensaje informativo al resumen del carrito
             cartSummary.appendChild(discountInfo);
             
-            // Crear el bloque de total normal
+            // Crear el bloque de total normal (asegurar que el valor es un número)
+            total = parseFloat(total) || 0;
+            
             const totalBlock = document.createElement('div');
             totalBlock.className = 'total-block';
             totalBlock.innerHTML = `
                 <span><i class="fas fa-money-bill-wave me-2"></i>Total:</span>
                 <span class="total-price" id="totalPrice">
-                    $${total.toFixed(0)} CLP
+                    $${Math.round(total)} CLP
                 </span>
             `;
             
@@ -672,14 +682,20 @@
                 createOrder: function (data, actions) {
                     // Obtener el total final (que puede tener descuento)
                     const totalText = document.getElementById('totalPrice').textContent;
-                    const total = parseFloat(totalText.replace('$', '').replace(',', '').replace('CLP', '').trim());
+                    // Mejorado el parseo de precios para manejar cualquier formato
+                    const total = parseFloat(totalText.replace(/[^\d]/g, '')) || 0;
                     
                     console.log('Monto a pagar:', total);
+                    
+                    // Asegurarse de que el valor sea al menos 1 USD para PayPal
+                    const usdTotal = Math.max((total / 900), 1).toFixed(2);
+                    console.log('Monto en USD:', usdTotal);
                     
                     return actions.order.create({
                         purchase_units: [{
                             amount: {
-                                value: (total / 900).toFixed(2) // Convertir CLP a USD aproximadamente
+                                value: usdTotal,
+                                currency_code: 'USD'
                             },
                             description: "Carrito Ferremax"
                         }]

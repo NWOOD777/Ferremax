@@ -77,20 +77,24 @@ WSGI_APPLICATION = 'PaginaFerremax.wsgi.application'
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
 DATABASES = {
+    # Use SQLite for most operations (faster development)
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
         'NAME': BASE_DIR / 'db.sqlite3',
+    },
+    # Use Oracle for payment methods
+    'oracle': {
+        'ENGINE': 'django.db.backends.oracle',
+        'NAME': 'orcl',
+        'USER': 'BDFerremas',
+        'PASSWORD': 'BDFerremas',
+        'HOST': 'localhost',
+        'PORT': '1521',
     }
-    # Commented out Oracle configuration
-    # 'default': {
-    #     'ENGINE': 'django.db.backends.oracle',
-    #     'NAME': 'orcl',
-    #     'USER': 'BDFerremas',
-    #     'PASSWORD': 'BDFerremas',
-    #     'HOST': 'localhost',
-    #     'PORT': '1521',
-    # }
 }
+
+# Database router to direct payment method queries to Oracle
+DATABASE_ROUTERS = ['PaginaFerremax.dbrouter.PaymentMethodRouter']
 
 
 # Password validation

@@ -18,6 +18,8 @@ urlpatterns = [
     path('mis_productos/', views.mis_productos, name='mis_productos'),
     path('modificar_producto/<int:id_producto>/', views.modificar_producto, name='modificar_producto'),
     path('eliminar_producto/<int:id_producto>/', views.eliminar_producto, name='eliminar_producto'),
+    path('empleados/', views.empleados_direct, name='empleados'),
+    path('api_empleados_django/', views.api_empleados_django, name='api_empleados_django'),
     path('checkout/', views.checkout, name='checkout'),
     path('ejecutar_pago/', views.ejecutar_pago_view, name='ejecutar_pago'),
     path('cambiar_estado_pedido/<int:id_pedido>/', views.cambiar_estado_pedido, name='cambiar_estado_pedido'),
@@ -28,6 +30,7 @@ urlpatterns = [
     path('check_stock/', views.check_stock, name='check_stock'),
     path('api_dolar/', views.api_dolar, name='api_dolar'),
     path('api-dolar-json/', views.api_dolar_json, name='api_dolar_json'),
+    path('herramientas/', views.herramientas, name='herramientas'),
 ] + api_urlpatterns
 
 from django.conf import settings
