@@ -29,6 +29,8 @@ urlpatterns = [
     path('check_stock/', views.check_stock, name='check_stock'),
     path('api_dolar/', views.api_dolar, name='api_dolar'),
     path('api-dolar-json/', views.api_dolar_json, name='api_dolar_json'),
+    path('productos/', ProductoListCreate.as_view(), name='producto-list-create'),
+    path('productos/<int:pk>/', ProductoRetrieveUpdateDestroy.as_view(), name='producto-detail'),
     path('herramientas/', views.herramientas, name='herramientas'),
 ] + api_urlpatterns
 
