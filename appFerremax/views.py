@@ -10,9 +10,7 @@ from django.utils.crypto import get_random_string
 from django.conf import settings
 from django.views.decorators.csrf import csrf_exempt
 import requests
-from rest_framework import generics
-from .models import Producto
-from .serializers import ProductoSerializer
+
 
 from appFerremax.forms import ProductoForm
 from .models import Cargo, Cliente, Empleado, Sucursal, Producto, Pedido, DetalleProducto, MetodoPago, EstadoPago, Pago
@@ -589,59 +587,8 @@ def ejecutar_pago_view(request):
                 producto.save()
 
             # Crea el registro de pago en la tabla Pago
-            try:
-                # Primero veamos todos los métodos de pago disponibles para depuración
-                all_metodos = list(MetodoPago.objects.all())
-                print(f"Métodos de pago disponibles ({len(all_metodos)}):")
-                for m in all_metodos:
-                    print(f"  - ID: {m.id_metodo_pago}, Nombre: {m.nombre_metodo_pago}")
-                
-                # En base a la captura de pantalla de Oracle, PayPal tiene ID=1
-                try:
-                    # Crear directamente un objeto MetodoPago con ID=1 (PayPal según la imagen)
-                    metodo_pago = MetodoPago(id_metodo_pago=1, nombre_metodo_pago="PayPal")
-                    print(f"Usando método de pago hardcodeado: ID=1, Nombre=PayPal")
-                    
-                    # No necesitamos guardar este objeto ya que solo lo usamos para la relación
-                    # Si necesitáramos guardarlo:
-                    # metodo_pago.save(using='default')
-                except Exception as direct_create_error:
-                    print(f"Error al crear método de pago hardcodeado: {direct_create_error}")
-                    
-                    # Intentar con el enfoque normal como fallback
-                    metodo_pago = MetodoPago.objects.filter(nombre_metodo_pago__iexact="PayPal").first()
-                    print(f"Búsqueda con iexact 'PayPal': {metodo_pago}")
-                    
-                    if not metodo_pago:
-                        # Si no encuentra con iexact, intentar con contains
-                        metodo_pago = MetodoPago.objects.filter(nombre_metodo_pago__icontains="PayPal").first()
-                        print(f"Búsqueda con icontains 'PayPal': {metodo_pago}")
-                    
-                    if not metodo_pago:
-                        # Probar con ID directo
-                        metodo_pago = MetodoPago.objects.filter(id_metodo_pago=1).first()
-                        print(f"Búsqueda con ID=1: {metodo_pago}")
-                    
-                    if not metodo_pago:
-                        # Si aún no encuentra, obtener el primer método de pago
-                        metodo_pago = MetodoPago.objects.first()
-                        print(f"Primer método de pago: {metodo_pago}")
-                        
-                        if not metodo_pago:
-                            print("ERROR: No se encontraron métodos de pago en la base de datos")
-                            return JsonResponse({'success': False, 'error': 'No hay métodos de pago disponibles'})
-                
-                print(f"Método de pago seleccionado: {metodo_pago.id_metodo_pago} - {metodo_pago.nombre_metodo_pago}")
-                # Intentar obtener el estado "Completado"
-                try:
-                    estado_pago = EstadoPago.objects.get(estado_pago="Completado")
-                except EstadoPago.DoesNotExist:
-                    # Si no existe, crear directamente (ID=1 suele ser "Completado")
-                    print("Estado 'Completado' no encontrado, creándolo...")
-                    estado_pago = EstadoPago(id_estado_pago=1, estado_pago="Completado")
-                    # No guardamos para evitar errores, solo lo usamos para la relación
-            except Exception as e:
-                return JsonResponse({'success': False, 'error': f'Error al buscar método de pago: {str(e)}'})
+            metodo_pago = MetodoPago.objects.get(nombre_metodo_pago="PayPal")
+            estado_pago = EstadoPago.objects.get(estado_pago="Completado")
             Pago.objects.create(
                 fecha=date.today(),
                 pedido=pedido,
@@ -669,7 +616,7 @@ def cerrar_sesion(request):
 from django.shortcuts import render, redirect
 from .forms import ProductoForm
 from .models import Producto
-"""
+
 def crearproductos(request):
     if request.method == 'POST':
         form = ProductoForm(request.POST, request.FILES)
@@ -700,7 +647,7 @@ def crearproductos(request):
     else:
         form = ProductoForm()
     return render(request, 'Home/crearproductos.html', {'form': form})
-"""
+
 def mis_productos(request):
     if 'nombre_usuario' not in request.session or 'tipo_usuario' not in request.session:
         return redirect('inicio')
@@ -727,7 +674,7 @@ def mis_productos(request):
         })
     except Empleado.DoesNotExist:
         return redirect('index')
-"""
+
 def modificar_producto(request, id_producto):
     try:
         producto = Producto.objects.get(id_producto=id_producto)
@@ -810,7 +757,7 @@ def eliminar_producto(request, id_producto):
         
     except Producto.DoesNotExist:
         return redirect('mis_productos')
-"""
+
 def recuperar_contrasena(request):
     
     errors = []
@@ -1027,15 +974,27 @@ def api_empleados_django(request):
         return JsonResponse({'error': str(e)}, status=500)
 
 def herramientas(request):
-    return render(request, 'Home/herramientas.html')
+    """
+    Vista para la página de herramientas
+    """
+    # Verificar que el usuario esté autenticado
+    if 'nombre_usuario' not in request.session:
+        return redirect('inicio')
+    
+    # Obtener el nombre de usuario para mostrarlo en la página
+    nombre_usuario = request.session.get('nombre_usuario')
+    
+    # Calculate total cart items for display
+    carrito = request.session.get('carrito', [])
+    total_items = sum(item['cantidad'] for item in carrito) if carrito else 0
+    
+    # Obtener productos de la categoría herramientas
+    herramientas = Producto.objects.filter(nombre_producto__icontains='herramienta').order_by('nombre_producto')
+    
+    return render(request, 'Home/herramientas.html', {
+        'nombre_usuario': nombre_usuario,
+        'total_items': total_items,
+        'productos': herramientas
+    })
 
 
-
-
-class ProductoListCreate(generics.ListCreateAPIView):
-    queryset = Producto.objects.all()
-    serializer_class = ProductoSerializer
-
-class ProductoRetrieveUpdateDestroy(generics.RetrieveUpdateDestroyAPIView):
-    queryset = Producto.objects.all()
-    serializer_class = ProductoSerializer
