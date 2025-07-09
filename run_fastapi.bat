@@ -3,9 +3,15 @@ echo =============================================
 echo Starting FastAPI server for Ferremax...
 echo =============================================
 echo.
-echo Access the API at: http://localhost:8000/api/empleados/
-echo Access the Swagger docs at: http://localhost:8000/docs
-echo Access the HTML page at: http://localhost:8000/empleados-web
+echo Employee API:
+echo - Access at: http://localhost:8001/api/empleados/
+echo - View in browser: http://localhost:8001/empleados-web
+echo.
+echo Products API:
+echo - Access at: http://localhost:8001/api/productos/
+echo - View in browser: http://localhost:8001/productosapi
+echo.
+echo Documentation: http://localhost:8001/docs
 echo.
 echo Close this window to stop the server.
 echo =============================================

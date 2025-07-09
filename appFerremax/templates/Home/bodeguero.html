@@ -4,39 +4,65 @@
 
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Panel Bodeguero - Órdenes de Pedido</title>
     {% load static %}
     <link rel="stylesheet" href="{% static 'CSS/bodeguero.css' %}">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 </head>
 
 <body>
-
-
-
     <div class="sidebar">
         {% if nombre_usuario %}
-        <a href="{% url 'index' %}" class="btn btn-success"
-            style="width:90%;margin:10px auto 15px auto;display:block;">Ir al inicio</a>
-        <div class="page-title">Bodeguero</div>
-        <i class="bi bi-person-circle user-icon"></i>
+        <a href="{% url 'index' %}" class="btn btn-success"><span>Ir al inicio</span></a>
+        <div class="page-title">Panel Bodeguero</div>
+        <div class="user-icon">
+            <i class="bi bi-person-circle"></i>
+        </div>
         <div class="username">{{ nombre_usuario }}</div>
-        <a href="{% url 'inicio' %}" class="logout-link">Cerrar sesión</a>
+        <a href="{% url 'cerrar_sesion' %}" class="logout-link"><span>Cerrar sesión</span></a>
         {% endif %}
     </div>
+    
+    <!-- Notification System -->
+    <div id="notificationSystem">
+        {% if messages %}
+        {% for message in messages %}
+        <div class="notification {{ message.tags|default:'info' }}">
+            <div class="notification-content">
+                <i class="bi {% if message.tags == 'success' %}bi-check-circle-fill{% elif message.tags == 'error' %}bi-exclamation-triangle-fill{% elif message.tags == 'warning' %}bi-exclamation-circle-fill{% else %}bi-info-circle-fill{% endif %}"></i>
+                <span>{{ message }}</span>
+            </div>
+            <button class="close-btn" title="Cerrar"><i class="bi bi-x"></i></button>
+        </div>
+        {% endfor %}
+        {% endif %}
+        
+        <!-- Debug notification for testing -->
+        <div class="notification success">
+            <div class="notification-content">
+                <i class="bi bi-check-circle-fill"></i>
+                <span>Panel de bodeguero cargado correctamente</span>
+            </div>
+            <button class="close-btn" title="Cerrar"><i class="bi bi-x"></i></button>
+        </div>
+    </div>
     <div class="main-content">
-        <div class="container mt-4">
-            <h1 class="mb-4">Órdenes de Pedido</h1>
-            <table class="table table-bordered">
-                <thead>
-                    <tr>
-                        <th># Orden</th>
-                        <th>Cliente</th>
-                        <th>Productos</th>
-                        <th>Estado</th>
-                        <th>Acciones</th>
-                    </tr>
-                </thead>
+        <div class="container">
+            <h1>Órdenes de Pedido</h1>
+            
+            <div class="table-container">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th># Orden</th>
+                            <th>Cliente</th>
+                            <th>Productos</th>
+                            <th>Estado</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
                 <tbody>
                     {% if pedidos %}
                     {% for pedido in pedidos %}
@@ -62,14 +88,18 @@
                         <td>
                             <form method="post" action="{% url 'cambiar_estado_pedido' pedido.id_pedido %}">
                                 {% csrf_token %}
-                                <select name="nuevo_estado" class="form-select form-select-sm mb-2">
-                                    <option value="Pendiente" {% if pedido.estado_pedido == 'Pendiente' %}selected{% endif %}>Pendiente</option>
-                                    <option value="Aprobado" {% if pedido.estado_pedido == 'Aprobado' %}selected{% endif %}>Aprobado</option>
-                                    <option value="Preparado" {% if pedido.estado_pedido == 'Preparado' %}selected{% endif %}>Preparado</option>
-                                    <option value="Enviado" {% if pedido.estado_pedido == 'Enviado' %}selected{% endif %}>Enviado</option>
-                                    <option value="Entregado" {% if pedido.estado_pedido == 'Entregado' %}selected{% endif %}>Entregado</option>
-                                </select>
-                                <button type="submit" class="btn btn-primary btn-sm">Actualizar estado</button>
+                                <div class="form-group">
+                                    <select name="nuevo_estado" class="form-select">
+                                        <option value="Pendiente" {% if pedido.estado_pedido == 'Pendiente' %}selected{% endif %}>Pendiente</option>
+                                        <option value="Aprobado" {% if pedido.estado_pedido == 'Aprobado' %}selected{% endif %}>Aprobado</option>
+                                        <option value="Preparado" {% if pedido.estado_pedido == 'Preparado' %}selected{% endif %}>Preparado</option>
+                                        <option value="Enviado" {% if pedido.estado_pedido == 'Enviado' %}selected{% endif %}>Enviado</option>
+                                        <option value="Entregado" {% if pedido.estado_pedido == 'Entregado' %}selected{% endif %}>Entregado</option>
+                                    </select>
+                                </div>
+                                <button type="submit" class="btn btn-primary btn-sm">
+                                    <i class="bi bi-arrow-clockwise me-1"></i> Actualizar
+                                </button>
                             </form>
                         </td>
                     </tr>
@@ -84,44 +114,121 @@
         </div>
     </div>
     <script>
-        // Aquí puedes agregar scripts para manejar los botones (Aceptar, Preparar, Registrar Entrega)
-        // Por ejemplo, usando fetch para enviar solicitudes al backend.
-
-        // Cambia el estado de la orden según el botón presionado
-        document.querySelectorAll('tbody tr').forEach(function (row) {
-            const estadoSpan = row.querySelector('td:nth-child(4) span');
-            const aceptarBtn = row.querySelector('.btn-success');
-            const prepararBtn = row.querySelector('.btn-primary');
-            const entregarBtn = row.querySelector('.btn-info');
-
-            aceptarBtn.addEventListener('click', function () {
-                estadoSpan.textContent = 'Preparado';
-                estadoSpan.className = 'badge bg-success';
+        // Notification System
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log("DOM loaded, initializing notification system");
+            
+            // Setup close buttons for notifications
+            document.querySelectorAll('.notification .close-btn').forEach(button => {
+                button.addEventListener('click', function() {
+                    console.log("Close button clicked");
+                    const notification = this.closest('.notification');
+                    notification.style.animation = 'slideOut 0.3s forwards';
+                    setTimeout(() => {
+                        notification.remove();
+                    }, 300);
+                });
             });
 
-            prepararBtn.addEventListener('click', function () {
-                estadoSpan.textContent = 'En Entrega';
-                estadoSpan.className = 'badge bg-info';
+            // Auto-dismiss notifications after 8 seconds (increased from 5 for better visibility)
+            document.querySelectorAll('.notification').forEach(notification => {
+                setTimeout(() => {
+                    if (notification && notification.parentNode) {
+                        notification.style.animation = 'slideOut 0.3s forwards';
+                        setTimeout(() => {
+                            if (notification && notification.parentNode) {
+                                notification.remove();
+                            }
+                        }, 300);
+                    }
+                }, 8000);
             });
-
-            entregarBtn.addEventListener('click', function () {
-                estadoSpan.textContent = 'Entregado';
-                estadoSpan.className = 'badge bg-secondary';
-            });
+            
+            // Test notification if none exist
+            if (!document.querySelector('#notificationSystem .notification')) {
+                showNotification('Sistema de notificaciones inicializado correctamente', 'success');
+            }
         });
+        
+        // Utility function for creating notifications programmatically
+        function showNotification(message, type = 'info') {
+            const notificationSystem = document.getElementById('notificationSystem');
+            
+            // First, clear any test notifications
+            const testNotification = document.querySelector('.notification.success');
+            if (testNotification) {
+                testNotification.remove();
+            }
+            
+            // Create notification
+            const notification = document.createElement('div');
+            notification.className = `notification ${type}`;
+            
+            // Create content
+            const content = document.createElement('div');
+            content.className = 'notification-content';
+            
+            // Add icon
+            const icon = document.createElement('i');
+            icon.className = type === 'success' ? 'bi bi-check-circle-fill' : 
+                            type === 'error' ? 'bi bi-exclamation-triangle-fill' :
+                            type === 'warning' ? 'bi bi-exclamation-circle-fill' : 'bi bi-info-circle-fill';
+            content.appendChild(icon);
+            
+            // Add text
+            const text = document.createElement('span');
+            text.textContent = message;
+            content.appendChild(text);
+            
+            // Add close button
+            const closeBtn = document.createElement('button');
+            closeBtn.className = 'close-btn';
+            const closeIcon = document.createElement('i');
+            closeIcon.className = 'bi bi-x';
+            closeBtn.appendChild(closeIcon);
+            
+            // Add event listener
+            closeBtn.addEventListener('click', function() {
+                notification.style.animation = 'slideOut 0.3s forwards';
+                setTimeout(() => {
+                    notification.remove();
+                }, 300);
+            });
+            
+            // Append to notification
+            notification.appendChild(content);
+            notification.appendChild(closeBtn);
+            
+            // Add to DOM
+            notificationSystem.appendChild(notification);
+            
+            // Auto-dismiss after 5 seconds
+            setTimeout(() => {
+                if (notification.parentNode) {
+                    notification.style.animation = 'slideOut 0.3s forwards';
+                    setTimeout(() => {
+                        if (notification.parentNode) {
+                            notification.remove();
+                        }
+                    }, 300);
+                }
+            }, 5000);
+        }
     </script>
     <script>
         // Función para cambiar estado con AJAX
         function cambiarEstadoAjax(pedidoId, nuevoEstado, button) {
             // Mostrar indicador de carga
-            button.innerHTML = 'Actualizando...';
+            const originalText = button.innerHTML;
+            button.innerHTML = '<i class="bi bi-arrow-repeat spin"></i> Actualizando...';
             button.disabled = true;
             
             fetch(`/cambiar_estado_pedido/${pedidoId}/`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-CSRFToken': '{{ csrf_token }}'
+                    'X-CSRFToken': '{{ csrf_token }}',
+                    'X-Requested-With': 'XMLHttpRequest'
                 },
                 body: JSON.stringify({
                     nuevo_estado: nuevoEstado
@@ -143,38 +250,61 @@
                     badgeElement.textContent = nuevoEstado;
                     
                     // Mostrar mensaje de éxito
-                    alert('Estado actualizado correctamente');
+                    showNotification(`Pedido #${pedidoId}: Estado actualizado a ${nuevoEstado}`, 'success');
+                    
+                    // Efectos visuales de éxito
+                    const row = button.closest('tr');
+                    row.style.backgroundColor = '#e8f5e9';
+                    setTimeout(() => {
+                        row.style.transition = 'background-color 1s ease';
+                        row.style.backgroundColor = '';
+                    }, 100);
                 } else {
-                    alert(`Error: ${data.error}`);
+                    showNotification(`Error: ${data.error}`, 'error');
                 }
                 
                 // Restaurar botón
-                button.innerHTML = 'Actualizar estado';
+                button.innerHTML = originalText;
                 button.disabled = false;
             })
             .catch(error => {
                 console.error('Error:', error);
-                alert('Error al actualizar el estado');
+                showNotification('Error al actualizar el estado', 'error');
                 
                 // Restaurar botón
-                button.innerHTML = 'Actualizar estado';
+                button.innerHTML = originalText;
                 button.disabled = false;
             });
         }
         
         // Configurar los formularios para usar AJAX en lugar de submit normal
-        document.querySelectorAll('form').forEach(form => {
-            form.addEventListener('submit', function(e) {
-                e.preventDefault();
-                
-                const pedidoId = this.action.split('/').filter(Boolean).pop();
-                const nuevoEstado = this.querySelector('select').value;
-                const button = this.querySelector('button');
-                
-                cambiarEstadoAjax(pedidoId, nuevoEstado, button);
+        document.addEventListener('DOMContentLoaded', function() {
+            document.querySelectorAll('form').forEach(form => {
+                form.addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    
+                    const pedidoId = this.action.split('/').filter(Boolean).pop();
+                    const nuevoEstado = this.querySelector('select').value;
+                    const button = this.querySelector('button');
+                    
+                    cambiarEstadoAjax(pedidoId, nuevoEstado, button);
+                });
             });
         });
     </script>
+    
+    <style>
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .bi-arrow-repeat.spin {
+            display: inline-block;
+            animation: spin 1s linear infinite;
+            margin-right: 5px;
+        }
+    </style>
 </body>
 
 </html>

@@ -20,6 +20,7 @@ urlpatterns = [
     path('api_empleados_django/', views.api_empleados_django, name='api_empleados_django'),
     path('checkout/', views.checkout, name='checkout'),
     path('ejecutar_pago/', views.ejecutar_pago_view, name='ejecutar_pago'),
+    path('confirmacion_pedido/<int:id_pedido>/', views.confirmacion_pedido, name='confirmacion_pedido'),
     path('cambiar_estado_pedido/<int:id_pedido>/', views.cambiar_estado_pedido, name='cambiar_estado_pedido'),
     path('recuperar_contrasena/', auth_views.PasswordResetView.as_view(template_name="Home/recuperar_contra/recuperar_contrasena.html"), name="recuperar_contrasena"),
     path('reset_password_sent/', auth_views.PasswordResetDoneView.as_view(template_name="Home/recuperar_contra/contra_reset_sent.html"), name="password_reset_done"),
@@ -33,6 +34,9 @@ urlpatterns = [
     path('modificar_producto/<int:id_producto>/', views.modificar_producto, name='modificar_producto'),
     path('eliminar_producto/<int:id_producto>/', views.eliminar_producto, name='eliminar_producto'),
     path('herramientas/', views.herramientas, name='herramientas'),
+    path('mis_pedidos/', views.mis_pedidos, name='mis_pedidos'),
+    path('productos/', views.productos, name='productos'),
+    path('productosapi/', views.productosapi, name='productosapi'),
 ] + api_urlpatterns
 
 urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

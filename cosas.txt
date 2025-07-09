@@ -3,9 +3,9 @@ User: BDFerremas
 Password: BDFerremas
 
 Superusuario
-Username: usuario
-Email: a93423828@gmail.com
-Password: Eladmin123
+    username = 'admin'
+    email = 'admin@ferremax.cl'
+    password = 'ferremax2025'
 
 
 Empleados precreados
@@ -32,7 +32,7 @@ Paypal business
 Paypal cuenta personal:
     Email: sb-sa47r443287072@personal.example.com
     Password: Vq8Y=buS
-
+/static<wbr>/{file_path}<
 App
     Name: Ferremax
     ID: AeFSoG-iJHJs-MCOwSrrVCKL7kMOo5WhE7IH9YaI8Znlcp5xZt5tfGvucUV7zGEDMl4n4bnLSgP3KXHx

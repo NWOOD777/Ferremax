@@ -743,9 +743,9 @@
                                 successDiv.innerHTML = '<i class="fas fa-check-circle me-2"></i>¡Pago procesado con éxito! Redirigiendo...';
                                 document.querySelector('.paypal-block').appendChild(successDiv);
                                 
-                                // Redirigir a la página de pedidos o mostrar confirmación
+                                // Redirigir a la página de confirmación del pedido
                                 setTimeout(() => {
-                                    window.location.href = '/pedidos/';
+                                    window.location.href = '/confirmacion_pedido/' + data.pedido_id + '/';
                                 }, 2000);
                             } else {
                                 // Mostrar mensaje de error

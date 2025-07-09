@@ -159,12 +159,20 @@
     border-radius: 10px;
     padding: 24px 32px;
     margin-top: 18px;
-    margin-bottom: 10px;
+    margin-bottom: 20px;
     font-size: 1.15rem;
     color: #222;
     box-shadow: 0 2px 8px rgba(52, 152, 219, 0.08);
-    max-width: 400px;
+    max-width: 550px;
     transition: box-shadow 0.2s;
+    page-break-inside: avoid; /* Importante para PDF */
+}
+
+#balanceReporte h2 {
+    color: #2980b9;
+    font-weight: 700;
+    text-align: center;
+    margin-bottom: 20px;
 }
 
 #balanceReporte strong {
@@ -176,6 +184,24 @@
     border: none;
     border-top: 1.5px solid #3498db;
     margin: 12px 0;
+}
+
+#balanceReporte table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 20px 0;
+}
+
+#balanceReporte table td {
+    padding: 10px;
+    border-bottom: 1px solid #ddd;
+}
+
+#balanceReporte table tr:last-child td {
+    border-bottom: none;
+    border-top: 2px solid #3498db;
+    background-color: #edf7ff;
+    font-weight: bold;
 }
 
 /* Estilo para el botón "Ir al inicio" */

@@ -1,49 +1,58 @@
 import paypalrestsdk
 from django.conf import settings
 
-# Configurar SDK de PayPal
+# Configurar SDK de PayPal con valores predeterminados para desarrollo
 paypalrestsdk.configure({
-    "mode": settings.PAYPAL_MODE,  # "sandbox" o "live"
-    "client_id": settings.PAYPAL_CLIENT_ID,
-    "client_secret": settings.PAYPAL_CLIENT_SECRET
+    "mode": getattr(settings, 'PAYPAL_MODE', 'sandbox'),  # "sandbox" o "live"
+    "client_id": getattr(settings, 'PAYPAL_CLIENT_ID', 'your-client-id'),
+    "client_secret": getattr(settings, 'PAYPAL_CLIENT_SECRET', 'your-client-secret')
 })
 
-def crear_pago(items, total, descripcion, redirect_urls):
+def crear_pago(total, descripcion, return_url):
     """
     Crea un pago en PayPal
     
     Args:
-        items: Lista de productos a comprar
         total: Monto total del pago
         descripcion: Descripción del pago
-        redirect_urls: URLs de redirección tras el pago
+        return_url: URL de redirección tras el pago
     
     Returns:
-        El objeto de pago creado en PayPal o None si falló
+        (url_aprobacion, payment_id): URL para aprobar el pago y ID del pago
+        o (None, None) si falló
     """
-    payment = paypalrestsdk.Payment({
-        "intent": "sale",
-        "payer": {
-            "payment_method": "paypal"
-        },
-        "redirect_urls": redirect_urls,
-        "transactions": [{
-            "item_list": {
-                "items": items
+    try:
+        payment = paypalrestsdk.Payment({
+            "intent": "sale",
+            "payer": {
+                "payment_method": "paypal"
             },
-            "amount": {
-                "total": str(total),
-                "currency": "USD"
+            "redirect_urls": {
+                "return_url": return_url,
+                "cancel_url": return_url
             },
-            "description": descripcion
-        }]
-    })
-
-    if payment.create():
-        return payment
-    else:
-        print(payment.error)
-        return None
+            "transactions": [{
+                "amount": {
+                    "total": str(total),
+                    "currency": "USD"
+                },
+                "description": descripcion
+            }]
+        })
+        
+        # Crear el pago
+        if payment.create():
+            # Extraer la URL de aprobación
+            for link in payment.links:
+                if link.rel == "approval_url":
+                    approval_url = link.href
+                    return approval_url, payment.id
+        else:
+            print(f"Error al crear el pago: {payment.error}")
+            return None, None
+    except Exception as e:
+        print(f"Error en PayPal: {str(e)}")
+        return None, None
 
 def ejecutar_pago(payment_id, payer_id):
     """
@@ -54,12 +63,23 @@ def ejecutar_pago(payment_id, payer_id):
         payer_id: ID del pagador en PayPal
     
     Returns:
-        True si el pago se ejecutó correctamente, False en caso contrario
+        (bool, dict): (True, detalles_pago) si el pago se ejecutó correctamente, (False, {}) en caso contrario
     """
-    payment = paypalrestsdk.Payment.find(payment_id)
-
-    if payment.execute({"payer_id": payer_id}):
-        return True
-    else:
-        print(payment.error)
-        return False
+    try:
+        payment = paypalrestsdk.Payment.find(payment_id)
+        
+        if payment.execute({"payer_id": payer_id}):
+            # Extraer detalles del pago
+            payment_details = {
+                'payment_id': payment.id,
+                'state': payment.state,
+                'amount': payment.transactions[0].amount.total,
+                'currency': payment.transactions[0].amount.currency
+            }
+            return True, payment_details
+        else:
+            print(f"Error al ejecutar el pago: {payment.error}")
+            return False, {}
+    except Exception as e:
+        print(f"Error en PayPal: {str(e)}")
+        return False, {}

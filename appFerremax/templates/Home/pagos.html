@@ -21,11 +21,17 @@
         </div>
         <div class="username" id="sidebarUsername">{{ nombre_usuario }}</div>
 
-        <a href="{% url 'inicio' %}" class="logout-link">Cerrar sesión</a>
+        <a href="{% url 'cerrar_sesion' %}" class="logout-link">Cerrar sesión</a>
     </div>
     <div class="main-content">
         <div class="container">
             <h1 class="titulo-gestion">GESTIÓN CONTADOR</h1>
+            
+            {% if request.session.tipo_usuario != 'Contador' and request.session.tipo_usuario != 'Administrador' %}
+            <div class="alert alert-warning" style="padding: 15px; background-color: #fff3cd; color: #856404; border: 1px solid #ffeeba; border-radius: 5px; margin-bottom: 20px;">
+                <strong>Aviso:</strong> Esta vista está diseñada para usuarios con cargo de Contador o Administrador.
+            </div>
+            {% endif %}
             <div class="section">
                 <h1>Registro de Transacciones de Ventas</h1>
                 <table id="tablaTransacciones">
@@ -36,7 +42,7 @@
                             <th>Cliente</th>
                             <th>Producto</th>
                             <th>Cantidad</th>
-                            <th>Total ($)</th>
+                            <th>Total (CLP)</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -47,7 +53,7 @@
                             <td>{{ transaccion.cliente }}</td>
                             <td>{{ transaccion.producto }}</td>
                             <td>{{ transaccion.cantidad }}</td>
-                            <td>${{ transaccion.total }}</td>
+                            <td>CLP {{ transaccion.total|floatformat:0|stringformat:'s'|slice:':-3'|default:'0' }}.{{ transaccion.total|floatformat:0|stringformat:'s'|slice:'-3:' }}</td>
                         </tr>
                         {% empty %}
                         <tr>
@@ -67,7 +73,7 @@
                             <th>Pedido</th>
                             <th>Método de Pago</th>
                             <th>Estado</th>
-                            <th>Monto ($)</th>
+                            <th>Monto (CLP)</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -78,7 +84,7 @@
                             <td>{{ pago.pedido }}</td>
                             <td>{{ pago.metodo_pago }}</td>
                             <td>{{ pago.estado_pago }}</td>
-                            <td>${{ pago.pedido.total }}</td>
+                            <td>CLP {{ pago.pedido.total|floatformat:0|stringformat:'s'|slice:':-3'|default:'0' }}.{{ pago.pedido.total|floatformat:0|stringformat:'s'|slice:'-3:' }}</td>
                         </tr>
                         {% empty %}
                         <tr>
@@ -91,11 +97,37 @@
             <div class="section">
                 <h1>Balance y Reportes Financieros</h1>
                 <div class="balance" id="balanceReporte">
-                    <strong>Total Ventas:</strong> ${{ total_ventas }}<br>
-                    <strong>Total Ingresos:</strong> ${{ ingresos }}<br>
-                    <strong>Total Egresos:</strong> ${{ egresos }}<br>
-                    <hr>
-                    <strong>Balance Final:</strong> ${{ balance }}
+                    <h2 style="color: #2980b9; text-align: center; margin-bottom: 20px;">Reporte Financiero - Ferremax</h2>
+                    <p style="margin-bottom: 20px;"><strong>Fecha:</strong> {% now "d/m/Y" %}</p>
+                    <table style="width:100%; margin-top:20px; margin-bottom:20px; border-collapse: collapse; border: 1px solid #ddd;">
+                        <tbody>
+                            <tr>
+                                <td style="padding: 10px;"><strong>Total Ventas:</strong></td>
+                                <td style="text-align:right; padding: 10px;">CLP {{ total_ventas|floatformat:0|stringformat:'s'|slice:':-3'|default:'0' }}.{{ total_ventas|floatformat:0|stringformat:'s'|slice:'-3:' }}</td>
+                            </tr>
+                            <tr>
+                                <td style="padding: 10px; background-color: #f9f9f9;"><strong>Total Ingresos:</strong></td>
+                                <td style="text-align:right; padding: 10px; background-color: #f9f9f9;">CLP {{ ingresos|floatformat:0|stringformat:'s'|slice:':-3'|default:'0' }}.{{ ingresos|floatformat:0|stringformat:'s'|slice:'-3:' }}</td>
+                            </tr>
+                            <tr>
+                                <td style="padding: 10px;"><strong>Total Egresos:</strong></td>
+                                <td style="text-align:right; padding: 10px;">CLP {{ egresos|floatformat:0|stringformat:'s'|slice:':-3'|default:'0' }}.{{ egresos|floatformat:0|stringformat:'s'|slice:'-3:' }}</td>
+                            </tr>
+                            <tr style="border-top: 2px solid #2980b9;">
+                                <td style="padding: 10px; font-weight: bold; background-color: #edf7ff;"><strong>Balance Final:</strong></td>
+                                <td style="text-align:right; padding: 10px; font-weight: bold; background-color: #edf7ff;">CLP {{ balance|floatformat:0|stringformat:'s'|slice:':-3'|default:'0' }}.{{ balance|floatformat:0|stringformat:'s'|slice:'-3:' }}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    <div style="margin-top: 40px; border-top: 1px solid #eee; padding-top: 20px;">
+                        <p style="font-size: 12px; text-align: center;">
+                            Este documento es un reporte financiero oficial.<br>
+                            Ferremax - Sistema de Gestión de Ferretería
+                        </p>
+                        <p style="font-size: 10px; text-align: center; color: #777; margin-top: 10px;">
+                            Documento generado el {% now "d/m/Y" %} a las {% now "H:i" %} hrs.
+                        </p>
+                    </div>
                 </div>
 
                 <button class="report-btn" id="btnImprimirPDF">Descargar en PDF</button>
@@ -103,31 +135,140 @@
 
         </div>
     </div>
+    <!-- Cargamos las librerías necesarias para PDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script>
-        // Lógica para descargar el balance como PDF
-        document.getElementById('btnImprimirPDF').addEventListener('click', function() {
-            const balanceDiv = document.getElementById('balanceReporte');
-            if (!balanceDiv || !balanceDiv.innerText.trim()) {
-                alert('No hay balance para descargar.');
-                return;
-            }
-            html2pdf().from(balanceDiv).set({
-                margin: 1,
-                filename: 'Balance_Financiero.pdf',
-                html2canvas: { scale: 2 },
-                jsPDF: { orientation: 'portrait', unit: 'in', format: 'letter', compressPDF: true }
-            }).save();
+        // Esperamos a que el documento esté completamente cargado
+        document.addEventListener('DOMContentLoaded', function() {
+            // Lógica para descargar el balance como PDF
+            document.getElementById('btnImprimirPDF').addEventListener('click', function() {
+                // Referencia al elemento que queremos convertir
+                const balanceDiv = document.getElementById('balanceReporte');
+                
+                if (!balanceDiv || !balanceDiv.innerText.trim()) {
+                    alert('No hay balance para descargar.');
+                    return;
+                }
+                
+                // Mostramos un mensaje de carga
+                const loadingMsg = document.createElement('div');
+                loadingMsg.innerText = 'Generando PDF...';
+                loadingMsg.style.position = 'fixed';
+                loadingMsg.style.top = '50%';
+                loadingMsg.style.left = '50%';
+                loadingMsg.style.transform = 'translate(-50%, -50%)';
+                loadingMsg.style.padding = '15px 25px';
+                loadingMsg.style.backgroundColor = 'rgba(0,0,0,0.7)';
+                loadingMsg.style.color = 'white';
+                loadingMsg.style.borderRadius = '8px';
+                loadingMsg.style.zIndex = '9999';
+                document.body.appendChild(loadingMsg);
+                
+                // Creamos un contenedor temporal para el PDF con estilos específicos
+                const pdfContainer = document.createElement('div');
+                pdfContainer.innerHTML = balanceDiv.innerHTML;
+                pdfContainer.style.width = '595px'; // Ancho de página A4 en píxeles
+                pdfContainer.style.padding = '40px';
+                pdfContainer.style.backgroundColor = 'white';
+                pdfContainer.style.color = 'black';
+                pdfContainer.style.fontFamily = 'Arial, sans-serif';
+                pdfContainer.style.position = 'fixed';
+                pdfContainer.style.left = '-9999px'; // Fuera de la vista
+                document.body.appendChild(pdfContainer);
+                
+                // Aseguramos que las tablas tengan estilos consistentes para el PDF
+                const tables = pdfContainer.querySelectorAll('table');
+                tables.forEach(table => {
+                    table.style.width = '100%';
+                    table.style.borderCollapse = 'collapse';
+                    table.style.marginBottom = '20px';
+                    
+                    const rows = table.querySelectorAll('tr');
+                    rows.forEach((row, index) => {
+                        // Aplicar un borde inferior a todas las filas excepto la última
+                        if (index < rows.length - 1) {
+                            row.style.borderBottom = '1px solid #ddd';
+                        }
+                        
+                        // El último tr tendrá un borde superior más grueso
+                        if (index === rows.length - 1) {
+                            row.style.borderTop = '2px solid #000';
+                            row.style.fontWeight = 'bold';
+                        }
+                        
+                        // Estilo a las celdas
+                        const cells = row.querySelectorAll('td');
+                        cells.forEach(cell => {
+                            cell.style.padding = '8px 4px';
+                            // Alineación a la derecha para la segunda columna (montos)
+                            if (cell === cells[1]) {
+                                cell.style.textAlign = 'right';
+                            }
+                        });
+                    });
+                });
+                
+                // Añadir logo o cabecera
+                const header = document.createElement('div');
+                header.innerHTML = '<h1 style="color: #333; text-align: center; margin-bottom: 20px;">FERREMAX</h1>' +
+                                  '<h2 style="color: #0056b3; text-align: center; margin-bottom: 30px;">Balance Financiero</h2>';
+                pdfContainer.insertBefore(header, pdfContainer.firstChild);
+                
+                // Añadir pie de página
+                const footer = document.createElement('div');
+                footer.innerHTML = '<p style="text-align: center; font-size: 12px; color: #666; margin-top: 40px; border-top: 1px solid #ddd; padding-top: 10px;">' +
+                                   'Este documento es un reporte financiero oficial de Ferremax.<br>' +
+                                   'Generado el ' + new Date().toLocaleDateString() + '</p>';
+                pdfContainer.appendChild(footer);
+                
+                // Generar PDF con html2canvas y jsPDF
+                setTimeout(() => {
+                    html2canvas(pdfContainer, {
+                        scale: 2, 
+                        logging: false,
+                        useCORS: true,
+                        allowTaint: true
+                    }).then(canvas => {
+                        // Eliminar el contenedor temporal
+                        document.body.removeChild(pdfContainer);
+                        document.body.removeChild(loadingMsg);
+                        
+                        const imgData = canvas.toDataURL('image/png');
+                        const { jsPDF } = window.jspdf;
+                        const pdf = new jsPDF({
+                            orientation: 'portrait',
+                            unit: 'mm',
+                            format: 'a4'
+                        });
+                        
+                        const imgWidth = 210; // A4 width in mm
+                        const pageHeight = 297; // A4 height in mm
+                        const imgHeight = canvas.height * imgWidth / canvas.width;
+                        let heightLeft = imgHeight;
+                        let position = 0;
+                        
+                        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+                        heightLeft -= pageHeight;
+                        
+                        // Si el contenido es más grande que una página, añadir páginas adicionales
+                        while (heightLeft >= 0) {
+                            position = heightLeft - imgHeight;
+                            pdf.addPage();
+                            pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+                            heightLeft -= pageHeight;
+                        }
+                        
+                        pdf.save('Balance_Financiero_Ferremax.pdf');
+                    }).catch(err => {
+                        document.body.removeChild(pdfContainer);
+                        document.body.removeChild(loadingMsg);
+                        console.error('Error al generar el PDF:', err);
+                        alert('Hubo un error al generar el PDF. Por favor, intente nuevamente.');
+                    });
+                }, 500);
+            });
         });
     </script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
-
-
-
 </body>
-
-</html>
-
-
-</body>
-
 </html>

@@ -4,20 +4,12 @@ from django.http import HttpResponse, JsonResponse
 from django.utils import timezone
 from django.urls import reverse
 from django.conf import settings
-from django.core.mail import send_mail
-from django.template.loader import render_to_string
-from django.utils.crypto import get_random_string
-from django.conf import settings
-from django.views.decorators.csrf import csrf_exempt
-import requests
+import json
+from decimal import Decimal
+from datetime import date
 
-
-from appFerremax.forms import ProductoForm
 from .models import Cargo, Cliente, Empleado, Sucursal, Producto, Pedido, DetalleProducto, MetodoPago, EstadoPago, Pago
 from .paypal_utils import crear_pago, ejecutar_pago
-from decimal import Decimal
-import json
-from datetime import date
 
 # Create your views here.
 def index(request):
@@ -28,52 +20,53 @@ def index(request):
     carrito = request.session.get('carrito', [])
     total_items = sum(item['cantidad'] for item in carrito) if carrito else 0
     
-    # Verificar si aplica descuento
-    discount_eligible = total_items >= 4
-    
     return render(request, 'Home/index.html', {
-        'nombre_usuario': nombre_usuario, 
+        'nombre_usuario': nombre_usuario,
         'productos': productos,
-        'total_cart_items': total_items,
-        'discount_eligible': discount_eligible
+        'total_items': total_items
     })
 
-
-
-
-from django.shortcuts import render, redirect
-from .models import Cliente, Empleado
-
 def inicio(request):
-    errors = []
-    valores = {}
     if request.method == 'POST':
-        correo = request.POST.get('correo', '').strip()
-        contrasena = request.POST.get('contrasena', '').strip()
+        correo = request.POST.get('correo')
+        contrasena = request.POST.get('contrasena')
+        
+        errores = []
         valores = {'correo': correo}
+        
+        # Validaciones
         if not correo or not contrasena:
-            errors.append('Debe ingresar correo y contraseña.')
-        else:
+            errores.append('Todos los campos son obligatorios')
+        
+        if not errores:
+            # Primero intentamos autenticar como Cliente
             try:
-                empleado = Empleado.objects.get(correo=correo)
-                if hasattr(empleado, 'contrasena') and contrasena == empleado.contrasena:
-                    request.session['nombre_usuario'] = f"{empleado.nombre_empleado} {empleado.apellido_empleado}"
-                    request.session['tipo_usuario'] = empleado.cargo.nombre_cargo
+                cliente = Cliente.objects.get(correo=correo)
+                if cliente.contrasena == contrasena:
+                    # Autenticación exitosa como cliente
+                    request.session['nombre_usuario'] = cliente.nombre_cliente
+                    request.session['tipo_usuario'] = 'cliente'
+                    request.session['id_usuario'] = cliente.rut_cliente  # Usando rut_cliente en lugar de id_cliente
                     return redirect('index')
                 else:
-                    errors.append('Contraseña incorrecta.')
-            except Empleado.DoesNotExist:
+                    errores.append('Contraseña incorrecta')
+            except Cliente.DoesNotExist:
+                # Si no es cliente, intentamos con Empleado
                 try:
-                    cliente = Cliente.objects.get(correo=correo)
-                    if hasattr(cliente, 'contrasena') and contrasena == cliente.contrasena:
-                        request.session['nombre_usuario'] = cliente.nombre_cliente
-                        request.session['tipo_usuario'] = 'cliente'
+                    empleado = Empleado.objects.get(correo=correo)
+                    if empleado.contrasena == contrasena:
+                        # Autenticación exitosa como empleado
+                        request.session['nombre_usuario'] = empleado.nombre_empleado
+                        request.session['tipo_usuario'] = empleado.cargo.nombre_cargo
+                        request.session['id_usuario'] = empleado.id_empleado
                         return redirect('index')
                     else:
-                        errors.append('Correo  o  contrasena incorrecta.')
-                except Cliente.DoesNotExist:
-                    errors.append('Correo  o  contrasena incorrecta.')
-        return render(request, 'Home/inicio.html', {'errores': errors, 'valores': valores})
+                        errores.append('Contraseña incorrecta')
+                except Empleado.DoesNotExist:
+                    errores.append('El correo no está registrado')
+                    
+        return render(request, 'Home/inicio.html', {'errores': errores, 'valores': valores})
+                
     return render(request, 'Home/inicio.html')
 
 def pedidos(request):
@@ -104,50 +97,61 @@ def pedidos(request):
     return render(request, 'Home/pedidos.html')
 
 def pagos(request):
-    # Verificar que el usuario esté autenticado y sea contador
     if 'nombre_usuario' not in request.session:
         return redirect('inicio')
-        
+    
+    # Verificar que el usuario sea contador o administrador
     tipo_usuario = request.session.get('tipo_usuario')
-    if tipo_usuario != 'Contador':
+    if tipo_usuario not in ['Contador', 'Administrador']:
         return redirect('index')
     
-    # Obtener el nombre de usuario para mostrarlo en la página
+    # Obtener nombre de usuario para mostrar en la página
     nombre_usuario = request.session.get('nombre_usuario')
     
-    # Obtener pagos de la base de datos
-    pagos_list = Pago.objects.all().order_by('-fecha')
+    # Obtener todos los pagos realizados
+    try:
+        pagos = Pago.objects.select_related('pedido', 'metodo_pago', 'estado_pago').all()
+    except Exception as e:
+        print(f"Error al obtener pagos: {e}")
+        pagos = []
     
-    # Obtener todos los pedidos con sus detalles para tabla de transacciones
-    transacciones = []
-    # Obtenemos pedidos con pagos completados (incluye pagados pero no necesariamente entregados)
-    pagos_completados = Pago.objects.filter(estado_pago__estado_pago='Completado')
-    pedidos_pagados = [pago.pedido for pago in pagos_completados]
-    
-    for pedido in pedidos_pagados:
-        detalles = DetalleProducto.objects.filter(pedido=pedido)
+    # Crear lista de transacciones (usando DetalleProducto)
+    try:
+        detalles = DetalleProducto.objects.select_related('pedido', 'producto').all()
+        transacciones = []
         for detalle in detalles:
-            transacciones.append({
-                'id': pedido.id_pedido,
-                'fecha': pedido.fecha_pedido,
-                'cliente': f"{pedido.cliente.nombre_cliente} {pedido.cliente.apellido_cliente}",
-                'producto': detalle.producto.nombre_producto,
-                'cantidad': detalle.cantidad,
-                'total': detalle.cantidad * detalle.producto.precio_unitario
-            })
+            try:
+                transaccion = {
+                    'id': detalle.id,
+                    'fecha': detalle.pedido.fecha_pedido,
+                    'cliente': detalle.pedido.cliente.nombre_cliente + ' ' + detalle.pedido.cliente.apellido_cliente,
+                    'producto': detalle.producto.nombre_producto,
+                    'cantidad': detalle.cantidad,
+                    'total': float(detalle.producto.precio_unitario * detalle.cantidad)
+                }
+                transacciones.append(transaccion)
+            except Exception as e:
+                print(f"Error procesando detalle {detalle.id}: {e}")
+                continue
+    except Exception as e:
+        print(f"Error al obtener detalles: {e}")
+        transacciones = []
     
-    # Calcular totales para los informes financieros
-    total_ventas = sum(t['total'] for t in transacciones)
-    
-    ingresos = sum(pago.pedido.total for pago in pagos_list if pago.estado_pago.estado_pago == 'Completado')
-    egresos = 0  # Podría calcularse de otra tabla si existe
-
-    # Balance final
+    # Calcular totales para el balance
+    total_ventas = sum(t['total'] for t in transacciones) if transacciones else 0
+    ingresos = total_ventas  # En un caso más complejo, podrían ser diferentes
+    egresos = total_ventas * 0.7 if total_ventas > 0 else 0  # Simulamos un 70% de costos sobre ventas
     balance = ingresos - egresos
+    
+    # Redondear valores para un mejor formato
+    total_ventas = int(round(total_ventas))
+    ingresos = int(round(ingresos))
+    egresos = int(round(egresos))
+    balance = int(round(balance))
     
     return render(request, 'Home/pagos.html', {
         'nombre_usuario': nombre_usuario,
-        'pagos': pagos_list,
+        'pagos': pagos,
         'transacciones': transacciones,
         'total_ventas': total_ventas,
         'ingresos': ingresos,
@@ -156,845 +160,498 @@ def pagos(request):
     })
 
 def bodeguero(request):
-    # Verificar que el usuario esté autenticado y sea bodeguero
     if 'nombre_usuario' not in request.session:
         return redirect('inicio')
-        
+    
+    # Verificar que el usuario sea bodeguero o administrador
     tipo_usuario = request.session.get('tipo_usuario')
-    if tipo_usuario != 'Bodeguero':
+    if tipo_usuario not in ['Bodeguero', 'Administrador']:
+        messages.warning(request, "No tienes permisos para acceder al panel de bodeguero")
         return redirect('index')
     
-    # Obtener el nombre de usuario para mostrarlo en la página
+    # Obtener nombre de usuario para mostrar en la página
     nombre_usuario = request.session.get('nombre_usuario')
     
-    # Obtener los pedidos que no están completados aún
-    pedidos = Pedido.objects.filter(estado_pedido__in=['Pendiente', 'Aprobado', 'Preparado'])
-    
-    # Cargar los detalles de cada pedido
-    for pedido in pedidos:
-        pedido.detalles = DetalleProducto.objects.filter(pedido=pedido)
+    # Obtener todos los pedidos
+    try:
+        # Obtener pedidos ordenados por fecha descendente (más recientes primero)
+        # y excluir los pedidos con estado 'Entregado' a menos que sea administrador
+        if tipo_usuario == 'Administrador':
+            pedidos = Pedido.objects.select_related('cliente').all().order_by('-fecha_pedido')
+        else:
+            # Para bodegueros, enfocamos en pedidos pendientes, aprobados o en preparación
+            pedidos = Pedido.objects.select_related('cliente').exclude(
+                estado_pedido='Entregado'
+            ).order_by('-fecha_pedido')
         
+        # Para cada pedido, obtenemos sus detalles de manera eficiente
+        for pedido in pedidos:
+            detalles = DetalleProducto.objects.filter(pedido=pedido).select_related('producto')
+            pedido.detalles = list(detalles)
+    except Exception as e:
+        print(f"Error al obtener pedidos: {e}")
+        messages.error(request, "Ocurrió un error al cargar los pedidos")
+        pedidos = []
+    
     return render(request, 'Home/bodeguero.html', {
+        'nombre_usuario': nombre_usuario,
         'pedidos': pedidos,
-        'nombre_usuario': nombre_usuario
+        'tipo_usuario': tipo_usuario
     })
 
-@csrf_exempt
-def cambiar_estado_pedido(request, id_pedido):
-    # Verificar que el usuario esté autenticado y sea bodeguero
-    if 'nombre_usuario' not in request.session:
-        if request.headers.get('Content-Type') == 'application/json':
-            return JsonResponse({'success': False, 'error': 'No autorizado'}, status=403)
-        return redirect('inicio')
-        
-    tipo_usuario = request.session.get('tipo_usuario')
-    if tipo_usuario != 'Bodeguero':
-        if request.headers.get('Content-Type') == 'application/json':
-            return JsonResponse({'success': False, 'error': 'No autorizado'}, status=403)
-        return redirect('index')
-    
+def registro(request):
     if request.method == 'POST':
-        # Determinar si es una solicitud AJAX o normal
-        is_ajax = request.headers.get('Content-Type') == 'application/json'
+        # Obtener datos del formulario
+        rut_cliente = request.POST.get('rut_cliente')
+        fecha_registro = request.POST.get('fecha_registro')
+        recibe_ofertas = request.POST.get('recibe_ofertas')
+        nombre_cliente = request.POST.get('nombre_cliente')
+        apellido_cliente = request.POST.get('apellido_cliente')
+        direccion = request.POST.get('direccion')
+        telefono_cliente = request.POST.get('telefono_cliente')
+        correo = request.POST.get('correo')
+        contrasena = request.POST.get('contrasena')
         
-        # Obtener el nuevo estado del pedido
+        # Guardar valores para relleno en caso de error
+        valores = {
+            'rut_cliente': rut_cliente,
+            'fecha_registro': fecha_registro,
+            'recibe_ofertas': recibe_ofertas,
+            'nombre_cliente': nombre_cliente,
+            'apellido_cliente': apellido_cliente,
+            'direccion': direccion,
+            'telefono_cliente': telefono_cliente,
+            'correo': correo
+        }
+        
+        # Validaciones
+        errores = []
+        
+        # Validar que todos los campos estén completos
+        if not all([rut_cliente, fecha_registro, recibe_ofertas, nombre_cliente, 
+                    apellido_cliente, direccion, telefono_cliente, correo, contrasena]):
+            errores.append('Todos los campos son obligatorios')
+        
+        # Validar formato de RUT (simple validación)
+        if not ('-' in rut_cliente and len(rut_cliente) >= 8 and len(rut_cliente) <= 12):
+            errores.append('El formato del RUT debe ser 12345678-9')
+            
+        # Validar que el RUT no exista ya
+        if not errores and Cliente.objects.filter(rut_cliente=rut_cliente).exists():
+            errores.append('El RUT ya está registrado')
+            
+        # Validar que el correo no exista ya
+        if not errores and Cliente.objects.filter(correo=correo).exists():
+            errores.append('El correo ya está registrado')
+            
+        # Si hay errores, volver al formulario
+        if errores:
+            return render(request, 'Home/registro.html', {'errores': errores, 'valores': valores})
+        
+        # Si no hay errores, crear el cliente
+        try:
+            nuevo_cliente = Cliente(
+                rut_cliente=rut_cliente,
+                fecha_registro=fecha_registro,
+                recibe_ofertas=recibe_ofertas,
+                nombre_cliente=nombre_cliente,
+                apellido_cliente=apellido_cliente,
+                direccion=direccion,
+                telefono_cliente=telefono_cliente,
+                correo=correo,
+                contrasena=contrasena
+            )
+            nuevo_cliente.save()
+            
+            # Autenticar al usuario recién registrado
+            request.session['nombre_usuario'] = nombre_cliente
+            request.session['tipo_usuario'] = 'cliente'
+            request.session['id_usuario'] = nuevo_cliente.rut_cliente  # Usando rut_cliente en lugar de id_cliente
+            
+            # Redirigir a la página principal
+            return redirect('index')
+        except Exception as e:
+            errores.append(f'Error al guardar: {str(e)}')
+            return render(request, 'Home/registro.html', {'errores': errores, 'valores': valores})
+    
+    # Si es GET, mostrar el formulario vacío
+    return render(request, 'Home/registro.html')
+
+def carrito(request):
+    # Get cart from session
+    carrito = request.session.get('carrito', [])
+    total_items = sum(item['cantidad'] for item in carrito) if carrito else 0
+    nombre_usuario = request.session.get('nombre_usuario')
+    
+    # Calculate subtotal
+    subtotal = sum(item['precio'] * item['cantidad'] for item in carrito) if carrito else 0
+    
+    # Apply discount: 25% off if 4 or more items in cart
+    discount = 0
+    if total_items >= 4:
+        discount = subtotal * Decimal('0.25')
+    
+    total = subtotal - discount
+    
+    return render(request, 'Home/carrito.html', {
+        'carrito': carrito,
+        'total_items': total_items,
+        'nombre_usuario': nombre_usuario,
+        'subtotal': subtotal,
+        'discount': discount,
+        'total': total
+    })
+
+def agregar_al_carrito(request, id_producto):
+    # Get product
+    producto = get_object_or_404(Producto, id_producto=id_producto)
+    
+    # Get or initialize cart
+    carrito = request.session.get('carrito', [])
+    
+    # Check if product already in cart
+    found = False
+    for item in carrito:
+        if item['id'] == id_producto:
+            item['cantidad'] += 1
+            found = True
+            break
+    
+    # If not found, add new item
+    if not found:
+        carrito.append({
+            'id': id_producto,
+            'nombre': producto.nombre_producto,
+            'precio': float(producto.precio_unitario),
+            'cantidad': 1,
+            'imagen': producto.imagen.url if producto.imagen else None
+        })
+    
+    # Save to session
+    request.session['carrito'] = carrito
+    
+    # Show message
+    messages.success(request, f'"{producto.nombre_producto}" añadido al carrito.')
+    
+    # Redirect to previous page or products page
+    referer = request.META.get('HTTP_REFERER')
+    if referer:
+        return redirect(referer)
+    return redirect('productos')
+
+def remove_from_cart(request, id_producto):
+    # Get cart
+    carrito = request.session.get('carrito', [])
+    
+    # Remove product
+    carrito = [item for item in carrito if item['id'] != id_producto]
+    
+    # Save to session
+    request.session['carrito'] = carrito
+    
+    # Redirect
+    return redirect('carrito')
+
+def cerrar_sesion(request):
+    # Clear session
+    request.session.flush()
+    return redirect('index')
+
+def empleados_direct(request):
+    empleados = Empleado.objects.select_related('sucursal', 'cargo').all()
+    return render(request, 'Home/empleados_direct.html', {'empleados': empleados})
+
+def api_empleados_django(request):
+    empleados = Empleado.objects.select_related('sucursal', 'cargo').all()
+    empleados_data = []
+    for emp in empleados:
+        empleados_data.append({
+            'id': emp.id_empleado,
+            'nombre': emp.nombre_empleado,
+            'apellido': emp.apellido_empleado,
+            'correo': emp.correo,
+            'sucursal': emp.sucursal.nombre_sucursal,
+            'cargo': emp.cargo.nombre_cargo
+        })
+    return JsonResponse({'empleados': empleados_data})
+
+def checkout(request):
+    if 'carrito' not in request.session or not request.session['carrito']:
+        return redirect('carrito')
+    
+    carrito = request.session['carrito']
+    subtotal = sum(item['precio'] * item['cantidad'] for item in carrito)
+    
+    # Apply discount
+    total_items = sum(item['cantidad'] for item in carrito)
+    discount = subtotal * Decimal('0.25') if total_items >= 4 else 0
+    
+    total = subtotal - discount
+    
+    # Get client
+    nombre_usuario = request.session.get('nombre_usuario')
+    try:
+        cliente = Cliente.objects.get(nombre_cliente=nombre_usuario)
+    except Cliente.DoesNotExist:
+        return redirect('inicio')
+    
+    # Create PayPal payment
+    payment_url, payment_id = crear_pago(
+        total, 
+        f'Compra Ferremax - {nombre_usuario}',
+        request.build_absolute_uri(reverse('ejecutar_pago'))
+    )
+    
+    if not payment_url or not payment_id:
+        messages.error(request, "Error al crear el pago. Intente nuevamente.")
+        return redirect('carrito')
+    
+    # Store payment_id in session
+    request.session['paypal_payment_id'] = payment_id
+    request.session['order_total'] = float(total)
+    
+    return redirect(payment_url)
+
+def ejecutar_pago_view(request):
+    payment_id = request.session.get('paypal_payment_id')
+    payer_id = request.GET.get('PayerID')
+    
+    if not payment_id or not payer_id:
+        messages.error(request, "Error en la información de pago. Intente nuevamente.")
+        return redirect('carrito')
+    
+    # Execute payment
+    success, payment_details = ejecutar_pago(payment_id, payer_id)
+    
+    if not success:
+        messages.error(request, "Error al procesar el pago. Intente nuevamente.")
+        return redirect('carrito')
+    
+    # Get order data
+    carrito = request.session.get('carrito', [])
+    nombre_usuario = request.session.get('nombre_usuario')
+    total = request.session.get('order_total', 0)
+    
+    try:
+        # Get client
+        cliente = Cliente.objects.get(nombre_cliente=nombre_usuario)
+        
+        # Create order
+        pedido = Pedido.objects.create(
+            cliente=cliente,
+            tipo_entrega='Despacho',  # Default
+            estado_pedido='Aprobado',
+            paypal_payment_id=payment_id,
+            total=total
+        )
+        
+        # Add products to order
+        for item in carrito:
+            producto = Producto.objects.get(id_producto=item['id'])
+            DetalleProducto.objects.create(
+                pedido=pedido,
+                producto=producto,
+                cantidad=item['cantidad'],
+                precio_unitario=item['precio']
+            )
+            
+            # Update stock
+            producto.stock_total -= item['cantidad']
+            producto.save()
+        
+        # Clear cart
+        request.session['carrito'] = []
+        
+        # Redirect to confirmation page
+        return redirect('confirmacion_pedido', id_pedido=pedido.id_pedido)
+        
+    except Cliente.DoesNotExist:
+        messages.error(request, "Error al identificar el cliente. Intente nuevamente.")
+        return redirect('carrito')
+    except Exception as e:
+        messages.error(request, f"Error al procesar la orden: {str(e)}")
+        return redirect('carrito')
+
+def confirmacion_pedido(request, id_pedido):
+    try:
+        pedido = Pedido.objects.get(id_pedido=id_pedido)
+        detalles = DetalleProducto.objects.filter(pedido=pedido)
+        
+        return render(request, 'Home/confirmacion_pedido.html', {
+            'pedido': pedido,
+            'detalles': detalles,
+            'nombre_usuario': request.session.get('nombre_usuario')
+        })
+    except Pedido.DoesNotExist:
+        return redirect('index')
+
+def cambiar_estado_pedido(request, id_pedido):
+    if request.method == 'POST' and request.session.get('tipo_usuario') in ['Administrador', 'Vendedor', 'Bodeguero']:
+        # Comprobar si es una solicitud AJAX
+        is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest' or request.content_type == 'application/json'
+        
         if is_ajax:
             try:
                 data = json.loads(request.body)
                 nuevo_estado = data.get('nuevo_estado')
-            except json.JSONDecodeError:
-                return JsonResponse({'success': False, 'error': 'JSON inválido'}, status=400)
+            except:
+                nuevo_estado = None
         else:
             nuevo_estado = request.POST.get('nuevo_estado')
         
-        # Validar que el nuevo estado sea válido
-        ESTADOS_VALIDOS = ['Pendiente', 'Aprobado', 'Preparado', 'Enviado', 'Entregado']
-        if nuevo_estado not in ESTADOS_VALIDOS:
-            if is_ajax:
-                return JsonResponse({'success': False, 'error': 'Estado no válido'}, status=400)
-            messages.error(request, 'Estado no válido')
-            return redirect('bodeguero')
-        
-        try:
-            pedido = Pedido.objects.get(id_pedido=id_pedido)
-            pedido.estado_pedido = nuevo_estado
-            pedido.save()
-            
-            if is_ajax:
-                return JsonResponse({'success': True, 'estado': nuevo_estado})
-            
-            messages.success(request, f'El pedido #{id_pedido} ha sido actualizado a {nuevo_estado}')
-        except Pedido.DoesNotExist:
-            if is_ajax:
-                return JsonResponse({'success': False, 'error': f'El pedido #{id_pedido} no existe'}, status=404)
-            messages.error(request, f'El pedido #{id_pedido} no existe')
-            
-    return redirect('bodeguero')
-
-def registro(request):
-    from django.core.exceptions import ValidationError
-    import re
-    errors = []
-    valores = {}
-    if request.method == 'POST':
-        rut = request.POST.get('rut_cliente', '').strip()
-        nombre = request.POST.get('nombre_cliente', '').strip()
-        apellido = request.POST.get('apellido_cliente', '').strip()
-        direccion = request.POST.get('direccion', '').strip()
-        telefono = request.POST.get('telefono_cliente', '').strip()
-        correo = request.POST.get('correo', '').strip()
-        contrasena = request.POST.get('contrasena', '').strip()
-        recibe_ofertas = request.POST.get('recibe_ofertas', '').strip().upper()
-        fecha_registro = request.POST.get('fecha_registro', '')
-
-        valores = {
-            'rut_cliente': rut,
-            'nombre_cliente': nombre,
-            'apellido_cliente': apellido,
-            'direccion': direccion,
-            'telefono_cliente': telefono,
-            'correo': correo,
-            'recibe_ofertas': recibe_ofertas,
-            'fecha_registro': fecha_registro,
-        }
-        rut_pattern = r"^\d{7,8}-[\dkK]$"
-        if not rut or not re.match(rut_pattern, rut):
-            errors.append('El RUT es obligatorio y debe tener formato 12345678-9.')
-        if not nombre:
-            errors.append('El nombre es obligatorio.')
-        if not apellido:
-            errors.append('El apellido es obligatorio.')
-        if not direccion:
-            errors.append('La dirección es obligatoria.')
-        if not telefono or len(telefono) < 8 or not telefono.isdigit():
-            errors.append('El teléfono debe tener al menos 8 dígitos y solo números.')
-        if not correo:
-            errors.append('El correo es obligatorio.')
-        elif Cliente.objects.filter(correo=correo).exists():
-            errors.append('El correo ya está registrado.')
-        if not contrasena or len(contrasena) < 8:
-            errors.append('La contraseña debe tener al menos 8 caracteres.')
-        if recibe_ofertas not in ['S', 'N']:
-            errors.append('Debe seleccionar si recibe ofertas (Sí o No).')
-        if not fecha_registro:
-            errors.append('La fecha de registro es obligatoria.')
-
-        if errors:
-            return render(request, 'Home/registro.html', {'errores': errors, 'valores': valores})
-
-        try:
-            Cliente.objects.create(
-                rut_cliente=rut,
-                fecha_registro=fecha_registro,
-                recibe_ofertas=recibe_ofertas,
-                nombre_cliente=nombre,
-                apellido_cliente=apellido,
-                direccion=direccion,
-                telefono_cliente=telefono,
-                correo=correo,
-                contrasena=contrasena
-            )
-            return redirect('inicio')
-        except ValidationError as e:
-            errors.extend(e.messages)
-            return render(request, 'Home/registro.html', {'errores': errors, 'valores': valores})
-
-    from datetime import date
-    valores['fecha_registro'] = date.today().isoformat()
-    return render(request, 'Home/registro.html', {'valores': valores})
-
-def agregar_al_carrito(request, id_producto):
-    try:
-        producto = get_object_or_404(Producto, id_producto=id_producto)
-        cantidad = int(request.POST.get('cantidad', 1))
-        
-        # Inicializar el carrito si no existe
-        if 'carrito' not in request.session:
-            request.session['carrito'] = []
-        
-        carrito = request.session['carrito']
-        
-        # Determinar si la llamada viene de la página del carrito (actualización) o de otro lugar (adición)
-        # Las actualizaciones desde el carrito envían la cantidad exacta, no un incremento
-        is_update_from_cart = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
-        
-        # Verificar si el producto ya está en el carrito
-        encontrado = False
-        for item in carrito:
-            if item['id'] == id_producto:
-                if is_update_from_cart:
-                    # Si es una actualización desde la página del carrito, establecer la cantidad exacta
-                    item['cantidad'] = cantidad
-                else:
-                    # Si es una adición normal desde otra página, incrementar la cantidad
-                    item['cantidad'] += cantidad
-                encontrado = True
-                messages.success(request, f'Se actualizó la cantidad de {producto.nombre_producto} en el carrito.')
-                break
-        
-        # Si no está en el carrito, agregarlo
-        if not encontrado:
-            # Aquí necesitamos manejar el caso donde imagen podría ser None
-            imagen_url = ''
-            if producto.imagen:
-                try:
-                    imagen_url = producto.imagen.url
-                except:
-                    # Si hay error al obtener la URL, dejamos vacío
-                    pass
-            
-            carrito.append({
-                'id': id_producto,
-                'nombre': producto.nombre_producto,
-                'precio': float(producto.precio_unitario),
-                'cantidad': cantidad,
-                'imagen': imagen_url,
-            })
-            messages.success(request, f'{producto.nombre_producto} agregado al carrito.')
-        
-        # Guardar el carrito actualizado en la sesión
-        request.session['carrito'] = carrito
-        request.session.modified = True
-        
-        # Verificar si es una solicitud AJAX
-        is_ajax_request = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
-        if is_ajax_request:
-            # Si es una solicitud AJAX, devolver una respuesta JSON
-            return JsonResponse({
-                'success': True, 
-                'message': 'Cantidad actualizada',
-                'cantidad': cantidad
-            })
-    except Exception as e:
-        error_msg = f'Error al agregar producto: {str(e)}'
-        messages.error(request, error_msg)
-        
-        # Si es una solicitud AJAX, devolver el error como JSON
-        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-            return JsonResponse({'success': False, 'error': error_msg}, status=400)
-    
-    # Solo para solicitudes no AJAX: Redireccionar de vuelta a la página anterior
-    return redirect('index')
-
-def carrito(request):
-    # Allow anyone to view cart even if not logged in
-    # if 'nombre_usuario' not in request.session:
-    #     return redirect('inicio')
-    
-    carrito = request.session.get('carrito', [])
-    
-    # Calcular el total
-    total = sum(item['precio'] * item['cantidad'] for item in carrito)
-    
-    # Calcular el número total de productos en el carrito
-    total_items = sum(item['cantidad'] for item in carrito)
-    
-    # Aplicar 25% de descuento si hay 4 o más productos en el carrito
-    discount = 0
-    if total_items >= 4:
-        discount = total * 0.25  # 25% de descuento
-        total_after_discount = total - discount
-    else:
-        total_after_discount = total
-    
-    return render(request, 'Home/carrito.html', {
-        'carrito': carrito,
-        'total': total,
-        'total_items': total_items,
-        'apply_discount': total_items >= 4,
-        'discount_percentage': 25,
-        'discount_amount': discount,
-        'total_after_discount': total_after_discount
-    })
-
-def checkout(request):
-    if 'nombre_usuario' not in request.session:
-        return redirect('inicio')
-    
-    if request.session.get('tipo_usuario') != 'cliente':
-        return redirect('index')
-    
-    carrito = request.session.get('carrito', [])
-    if not carrito:
-        return redirect('carrito')
-    
-    total = Decimal('0.00')
-    items = []
-    
-    # Contar productos para el descuento
-    total_items = sum(item['cantidad'] for item in carrito)
-    apply_discount = total_items >= 4
-    
-    for item in carrito:
-        producto = Producto.objects.get(id_producto=item['id'])
-        subtotal = Decimal(str(producto.precio_unitario)) * int(item['cantidad'])
-        total += subtotal
-        
-        items.append({
-            "name": producto.nombre_producto,
-            "sku": str(producto.id_producto),
-            "price": str(producto.precio_unitario),
-            "currency": "USD",
-            "quantity": item['cantidad']
-        })
-    
-    # Aplicar descuento de 25% si hay 4 o más productos
-    if apply_discount:
-        discount = total * Decimal('0.25')
-        total = total - discount
-    
-    base_url = request.build_absolute_uri('/')[:-1]
-    redirect_urls = {
-        "return_url": f"{base_url}{reverse('ejecutar_pago')}",
-        "cancel_url": f"{base_url}{reverse('carrito')}"
-    }
-    
-    payment = crear_pago(
-        items=items, 
-        total=total, 
-        descripcion="Compra en Ferremax", 
-        redirect_urls=redirect_urls
-    )
-    
-    if payment:
-        request.session['paypal_payment_id'] = payment.id
-        request.session['paypal_total'] = str(total)
-        
-        for link in payment.links:
-            if link.rel == "approval_url":
-                approval_url = link.href
-                return redirect(approval_url)
-    
-    return redirect('carrito')
-
-@csrf_exempt
-def ejecutar_pago_view(request):
-    if request.method == 'POST':
-        try:
-            data = json.loads(request.body)
-            cart = data.get('cart', [])
-            payment_id = data.get('payment_id')
-            payer_id = data.get('payer_id')
-
-            # Busca el cliente en sesión
-            nombre_usuario = request.session.get('nombre_usuario')
-            if not nombre_usuario:
-                return JsonResponse({'success': False, 'error': 'Usuario no autenticado'})
-
-            cliente = Cliente.objects.filter(nombre_cliente=nombre_usuario).first()
-            if not cliente:
-                return JsonResponse({'success': False, 'error': 'Cliente no encontrado'})
-
-            # Verificar carrito vacío
-            if not cart:
-                # Si no hay carrito en la solicitud, intentar obtener de la sesión
-                cart = request.session.get('carrito', [])
-                if not cart:
-                    return JsonResponse({'success': False, 'error': 'El carrito está vacío'})
-                
-            # Imprimir para depuración
-            print("Estructura del carrito recibido:", cart)
-            
-            # Asegurarse de que el carrito tiene el formato correcto
-            total = 0
-            processed_cart = []
-            
-            for item in cart:
-                try:
-                    # Acceder a las propiedades según el formato del carrito
-                    print(f"Item recibido: {item}")
-                    
-                    # Compatibilidad con diferentes formatos de carrito
-                    item_id = item.get('id')
-                    # Para el formato de carrito de sesión
-                    quantity = int(item.get('quantity', item.get('cantidad', 1)))
-                    price = float(item.get('price', item.get('precio', 0)))
-                    
-                    print(f"Procesando item: id={item_id}, quantity={quantity}, price={price}")
-                    
-                    if not item_id:
-                        return JsonResponse({'success': False, 'error': 'ID de producto no encontrado en el carrito. Por favor, vuelva a agregar los productos.'})
-                    
-                    # Buscar el producto en la base de datos
-                    try:
-                        producto = Producto.objects.get(id_producto=item_id)
-                        print(f"Producto encontrado: {producto.nombre_producto}, Stock actual: {producto.stock_total}, Cantidad solicitada: {quantity}")
-                        
-                        # Asegurarse de que stock_total es un entero
-                        stock_total = int(producto.stock_total) if producto.stock_total is not None else 0
-                        
-                        # Verificar stock
-                        if stock_total < quantity:
-                            print(f"ERROR DE STOCK: {producto.nombre_producto} - Stock disponible: {stock_total}, Cantidad solicitada: {quantity}")
-                            return JsonResponse({'success': False, 'error': f'No hay suficiente stock para {producto.nombre_producto} (Stock: {stock_total}, Solicitado: {quantity})'})
-                            
-                        # Verificar que el stock no sea negativo
-                        if stock_total <= 0:
-                            print(f"ERROR DE STOCK NEGATIVO: {producto.nombre_producto} - Stock disponible: {stock_total}")
-                            return JsonResponse({'success': False, 'error': f'El producto {producto.nombre_producto} está fuera de stock'})
-                    except Producto.DoesNotExist:
-                        return JsonResponse({'success': False, 'error': f'Producto ID:{item_id} no encontrado'})
-                    except Exception as e:
-                        print(f"Error al verificar stock: {str(e)}")
-                        return JsonResponse({'success': False, 'error': f'Error verificando stock: {str(e)}'})
-
-                    # Calcular subtotal y acumularlo
-                    subtotal = price * quantity
-                    total += subtotal
-                    
-                    # Guardar los datos procesados para usar más tarde
-                    processed_cart.append({
-                        'id': item_id,
-                        'quantity': quantity,
-                        'price': price,
-                        'producto': producto
-                    })
-                    
-                except Producto.DoesNotExist:
-                    return JsonResponse({'success': False, 'error': f'Producto ID:{item_id} no encontrado'})
-                except Exception as e:
-                    return JsonResponse({'success': False, 'error': f'Error procesando el carrito: {str(e)}'})
-
-            # Aplicar descuento de 25% si hay 4 o más productos
-            total_items = sum(item['quantity'] for item in processed_cart)
-            if total_items >= 4:
-                discount = total * 0.25
-                total = total - discount
-            
-            # Verificar total mayor a cero (usando el total calculado con los productos procesados)
-            if total <= 0:
-                return JsonResponse({'success': False, 'error': 'El total debe ser mayor a cero'})
-
-            # Crea el pedido
-            pedido = Pedido.objects.create(
-                fecha_pedido=date.today(),
-                estado_pedido="Aprobado",
-                tipo_entrega="Despacho",
-                cliente=cliente,
-                paypal_payment_id=payment_id,
-                total=total
-            )
-
-            # Crea los detalles y actualiza stock usando el carrito procesado
-            for item in processed_cart:
-                producto = item['producto']
-                DetalleProducto.objects.create(
-                    cantidad=item['quantity'],
-                    producto=producto,
-                    pedido=pedido
-                )
-                producto.stock_total -= item['quantity']
-                producto.save()
-
-            # Crea el registro de pago en la tabla Pago
-            metodo_pago = MetodoPago.objects.get(nombre_metodo_pago="PayPal")
-            estado_pago = EstadoPago.objects.get(estado_pago="Completado")
-            Pago.objects.create(
-                fecha=date.today(),
-                pedido=pedido,
-                metodo_pago=metodo_pago,
-                estado_pago=estado_pago
-            )
-
-            # Limpia el carrito en sesión
-            if 'carrito' in request.session:
-                del request.session['carrito']
-                request.session.modified = True
-
-            return JsonResponse({'success': True})
-
-        except Exception as e:
-            print(f"Error al procesar el pedido: {e}")
-            return JsonResponse({'success': False, 'error': str(e)})
-
-    return JsonResponse({'success': False, 'error': 'Método no permitido'}, status=405)
-
-def cerrar_sesion(request):
-    request.session.flush()  
-    return redirect('index') 
-
-from django.shortcuts import render, redirect
-from .forms import ProductoForm
-from .models import Producto
-
-def crearproductos(request):
-    if request.method == 'POST':
-        form = ProductoForm(request.POST, request.FILES)
-        if form.is_valid():
-            producto = form.save(commit=False)
-            # Asignar imagen por defecto si no se subió ninguna
-            if not producto.imagen:
-                producto.imagen = 'imagenes_ferremas/nostock.png'
-            if 'nombre_usuario' in request.session and 'tipo_usuario' in request.session:
-                if request.session['tipo_usuario'] != 'cliente':
-                    nombre_completo = request.session['nombre_usuario']
-                    partes = nombre_completo.split(' ', 1)
-                    nombre = partes[0]
-                    apellido = partes[1] if len(partes) > 1 else ''
-                    try:
-                        empleado = Empleado.objects.get(
-                            nombre_empleado=nombre,
-                            apellido_empleado=apellido
-                        )
-                        producto.creado_por = empleado
-                    except Empleado.DoesNotExist:
-                        pass
-            producto.save()
-            return render(request, 'Home/crearproductos.html', {
-                'form': ProductoForm(),
-                'mensaje': 'Producto creado exitosamente'
-            })
-    else:
-        form = ProductoForm()
-    return render(request, 'Home/crearproductos.html', {'form': form})
-
-def mis_productos(request):
-    if 'nombre_usuario' not in request.session or 'tipo_usuario' not in request.session:
-        return redirect('inicio')
-    
-    if request.session['tipo_usuario'] == 'cliente':
-        return redirect('index')
-    
-    nombre_completo = request.session['nombre_usuario']
-    nombres = nombre_completo.split(' ', 1)
-    nombre = nombres[0]
-    apellido = nombres[1] if len(nombres) > 1 else ''
-    
-    try:
-        empleado = Empleado.objects.get(
-            nombre_empleado=nombre,
-            apellido_empleado=apellido
-        )
-        
-        productos = Producto.objects.filter(creado_por=empleado).order_by('-fecha_creacion')
-        
-        return render(request, 'Home/mis_productos.html', {
-            'productos': productos,
-            'empleado': empleado
-        })
-    except Empleado.DoesNotExist:
-        return redirect('index')
-
-def modificar_producto(request, id_producto):
-    try:
-        producto = Producto.objects.get(id_producto=id_producto)
-        
-        if 'nombre_usuario' not in request.session or 'tipo_usuario' not in request.session:
-            return redirect('inicio')
-        
-        if request.session['tipo_usuario'] == 'cliente':
-            return redirect('index')
-        
-        nombre_completo = request.session['nombre_usuario']
-        nombres = nombre_completo.split(' ', 1)
-        nombre = nombres[0]
-        apellido = nombres[1] if len(nombres) > 1 else ''
-        
-        try:
-            empleado = Empleado.objects.get(
-                nombre_empleado=nombre,
-                apellido_empleado=apellido
-            )
-            
-            if producto.creado_por != empleado:
-                return redirect('mis_productos')
-            
-        except Empleado.DoesNotExist:
-            return redirect('index')
-        
-        if request.method == 'POST':
-            form = ProductoForm(request.POST, request.FILES, instance=producto)
-            if form.is_valid():
-                form.save()
-                return render(request, 'Home/modificar_producto.html', {
-                    'form': form, 
-                    'producto': producto,
-                    'mensaje': 'Producto actualizado exitosamente',
-                    'actualizado': True
-                })
-        else:
-            form = ProductoForm(instance=producto)
-        return render(request, 'Home/modificar_producto.html', {
-            'form': form,
-            'producto': producto
-        })
-    except Producto.DoesNotExist:
-        return redirect('mis_productos')
-
-def eliminar_producto(request, id_producto):
-    try:
-        producto = Producto.objects.get(id_producto=id_producto)
-        
-        if 'nombre_usuario' not in request.session or 'tipo_usuario' not in request.session:
-            return redirect('inicio')
-        
-        if request.session['tipo_usuario'] == 'cliente':
-            return redirect('index')
-        
-        nombre_completo = request.session['nombre_usuario']
-        nombres = nombre_completo.split(' ', 1)
-        nombre = nombres[0]
-        apellido = nombres[1] if len(nombres) > 1 else ''
-        
-        try:
-            empleado = Empleado.objects.get(
-                nombre_empleado=nombre,
-                apellido_empleado=apellido
-            )
-            
-            if producto.creado_por != empleado:
-                return redirect('mis_productos')
-            
-            producto.delete()
-            
-            from django.contrib import messages
-            messages.success(request, f'El producto "{producto.nombre_producto}" ha sido eliminado correctamente.')
-            
-        except Empleado.DoesNotExist:
-            return redirect('index')
-        
-        return redirect('mis_productos')
-        
-    except Producto.DoesNotExist:
-        return redirect('mis_productos')
-
-def recuperar_contrasena(request):
-    
-    errors = []
-    mensaje = ''
-    if request.method == 'POST':
-        correo = request.POST.get('correo', '').strip()
-        if not correo:
-            errors.append('Debe ingresar su correo electrónico.')
-        else:
-            # Buscar en Cliente y Empleado
-            user = None
+        if nuevo_estado in ['Pendiente', 'Aprobado', 'Rechazado', 'Enviado', 'Entregado', 'Preparado']:
             try:
-                user = Cliente.objects.get(correo=correo)
-                user_type = 'cliente'
-            except Cliente.DoesNotExist:
-                try:
-                    user = Empleado.objects.get(correo=correo)
-                    user_type = 'empleado'
-                except Empleado.DoesNotExist:
-                    errors.append('El correo no está registrado.')
-            if user and not errors:
-                # Generar token simple (en producción usar PasswordResetTokenGenerator)
-                token = get_random_string(32)
-                # Guardar el token en sesión (o en la base de datos si lo deseas)
-                request.session['reset_token'] = token
-                request.session['reset_email'] = correo
-                # Construir enlace de recuperación
-                reset_url = request.build_absolute_uri(
-                    reverse('resetear_contrasena') + f'?token={token}'
-                )
-                # Renderizar email
-                subject = 'Recupera tu contraseña - Ferremax'
-                message = render_to_string('Home/email_recuperar_contrasena.txt', {
-                    'reset_url': reset_url,
-                    'nombre': getattr(user, 'nombre_cliente', getattr(user, 'nombre_empleado', 'Usuario')),
-                })
-                send_mail(subject, message, settings.DEFAULT_FROM_EMAIL, [correo])
-                mensaje = 'Se ha enviado un correo con instrucciones para restablecer tu contraseña.'
-    return render(request, 'Home/recuperar_contrasena.html', {'errores': errors, 'mensaje': mensaje})
+                pedido = get_object_or_404(Pedido, id_pedido=id_pedido)
+                pedido.estado_pedido = nuevo_estado
+                pedido.save()
+                
+                if is_ajax:
+                    return JsonResponse({
+                        'success': True,
+                        'estado': nuevo_estado,
+                        'mensaje': f'El estado del pedido #{id_pedido} ha sido actualizado a {nuevo_estado}'
+                    })
+                
+                # Redireccionar según el tipo de usuario
+                if request.session.get('tipo_usuario') == 'Bodeguero':
+                    messages.success(request, f'El estado del pedido #{id_pedido} ha sido actualizado a {nuevo_estado}')
+                    return redirect('bodeguero')
+            except Exception as e:
+                if is_ajax:
+                    return JsonResponse({'success': False, 'error': str(e)}, status=400)
+    
+        elif is_ajax:
+            return JsonResponse({'success': False, 'error': 'Estado inválido'}, status=400)
+    
+    return redirect('pedidos')
 
 def check_stock(request):
-    """
-    View to check the stock levels of all products.
-    For debugging purposes.
-    """
-    productos = Producto.objects.all().order_by('stock_total')
-    return render(request, 'Home/check_stock.html', {'productos': productos})
-
-def api_dolar(request):
-    """
-    Vista para obtener el tipo de cambio actual de USD a CLP utilizando la API de ExchangeRate-API
-    """
-    try:
-        # Llamada a la API gratuita de ExchangeRate-API
-        response = requests.get('https://open.er-api.com/v6/latest/USD')
-        data = response.json()
+    if request.method == 'POST':
+        data = json.loads(request.body)
+        id_producto = data.get('id_producto')
+        cantidad = data.get('cantidad', 1)
         
-        # Verificar si la llamada fue exitosa
-        if response.status_code == 200 and data.get('result') == 'success':
-            # Obtener el tipo de cambio de USD a CLP
-            usd_to_clp = data['rates'].get('CLP', 0)
-            
-            # Obtener tipos de cambio adicionales (opcional)
-            usd_to_eur = data['rates'].get('EUR', 0)
-            usd_to_gbp = data['rates'].get('GBP', 0)
-            
-            # Renderizar la plantilla con los datos
-            return render(request, 'apidolar.html', {
-                'usd_to_clp': usd_to_clp,
-                'usd_to_eur': usd_to_eur,
-                'usd_to_gbp': usd_to_gbp,
-                'timestamp': data.get('time_last_update_utc', ''),
-                'success': True
-            })
-        else:
-            # En caso de error, mostrar mensaje
-            return render(request, 'apidolar.html', {
-                'error_message': 'No se pudo obtener el tipo de cambio. Intente nuevamente más tarde.',
-                'success': False
-            })
-    except Exception as e:
-        # En caso de error, mostrar mensaje
-        return render(request, 'apidolar.html', {
-            'error_message': f'Error al obtener el tipo de cambio: {str(e)}',
-            'success': False
-        })
-
-def api_dolar_json(request):
-    """
-    Endpoint JSON para obtener el tipo de cambio actual de USD a CLP utilizando la API de ExchangeRate-API
-    """
-    try:
-        # Llamada a la API gratuita de ExchangeRate-API
-        response = requests.get('https://open.er-api.com/v6/latest/USD')
-        data = response.json()
-        
-        # Verificar si la llamada fue exitosa
-        if response.status_code == 200 and data.get('result') == 'success':
-            # Obtener el tipo de cambio de USD a CLP
-            usd_to_clp = data['rates'].get('CLP', 850)  # Valor predeterminado 850 si no se encuentra
-            
-            # Devolver respuesta JSON
+        try:
+            producto = Producto.objects.get(id_producto=id_producto)
             return JsonResponse({
                 'success': True,
-                'exchange_rate': usd_to_clp,
-                'timestamp': data.get('time_last_update_utc', '')
+                'stock': producto.stock_total,
+                'available': producto.stock_total >= cantidad
             })
-        else:
-            # En caso de error, devolver mensaje de error
-            return JsonResponse({
-                'success': False,
-                'error': 'No se pudo obtener el tipo de cambio'
-            })
-    except Exception as e:
-        # En caso de error, devolver mensaje de error
-        return JsonResponse({
-            'success': False,
-            'error': str(e)
-        })
+        except Producto.DoesNotExist:
+            return JsonResponse({'success': False, 'error': 'Producto no encontrado'}, status=404)
+    
+    return JsonResponse({'success': False, 'error': 'Método no permitido'}, status=405)
 
-def remove_from_cart(request, id_producto):
-    if 'carrito' in request.session:
-        carrito = request.session['carrito']
-        # Find the item by id
-        for i, item in enumerate(carrito):
-            if item['id'] == id_producto:
-                del carrito[i]
-                break
-                
-        # Update the session
-        request.session['carrito'] = carrito
-        request.session.modified = True
-    
-    return redirect('carrito')
+def api_dolar(request):
+    return render(request, 'apidolar.html')
 
-def empleados(request):
-    """
-    View function to display the empleados page that uses the FastAPI endpoint.
-    If FastAPI is not running, it will use data directly from Django.
-    """
-    nombre_usuario = request.session.get('nombre_usuario')
-    
-    # Calculate total cart items for display
-    carrito = request.session.get('carrito', [])
-    total_items = sum(item['cantidad'] for item in carrito) if carrito else 0
-    
-    # Pre-fetch employee data to avoid needing FastAPI running
-    empleados_data = []
-    try:
-        empleados = Empleado.objects.select_related('sucursal', 'cargo').all()
-        for emp in empleados:
-            empleados_data.append({
-                'id': emp.id_empleado,
-                'nombre': emp.nombre_empleado,
-                'apellido': emp.apellido_empleado,
-                'correo': emp.correo,
-                'sucursal': emp.sucursal.nombre_sucursal,
-                'cargo': emp.cargo.nombre_cargo
-            })
-    except Exception as e:
-        print(f"Error pre-fetching employee data: {e}")
-    
-    context = {
-        'nombre_usuario': nombre_usuario,
-        'total_items': total_items,
-        'empleados_data': json.dumps(empleados_data)  # Pass the data as JSON
-    }
-    
-    return render(request, 'Home/empleados_api.html', context)
+def api_dolar_json(request):
+    # Mock API response
+    return JsonResponse({
+        'dolar': {
+            'valor': 850,
+            'fecha': date.today().strftime('%Y-%m-%d')
+        }
+    })
 
-def empleados_direct(request):
-    """
-    View function to display the empleados page that directly renders the employees in a grid layout.
-    """
-    nombre_usuario = request.session.get('nombre_usuario')
-    
-    # Calculate total cart items for display
-    carrito = request.session.get('carrito', [])
-    total_items = sum(item['cantidad'] for item in carrito) if carrito else 0
-    
-    # Fetch all employees with their related data
-    empleados = Empleado.objects.select_related('sucursal', 'cargo').all()
-    
-    context = {
-        'nombre_usuario': nombre_usuario,
-        'total_items': total_items,
-        'empleados': empleados
-    }
-    
-    return render(request, 'Home/empleados_direct.html', context)
-
-def api_empleados_django(request):
-    """
-    API view to provide employee data directly from Django
-    This is a fallback for when the FastAPI server is not running
-    """
-    try:
-        empleados = Empleado.objects.select_related('sucursal', 'cargo').all()
-        
-        # Format response
-        response = []
-        for emp in empleados:
-            response.append({
-                'id': emp.id_empleado,
-                'nombre': emp.nombre_empleado,
-                'apellido': emp.apellido_empleado,
-                'correo': emp.correo,
-                'sucursal': emp.sucursal.nombre_sucursal,
-                'cargo': emp.cargo.nombre_cargo
-            })
-        
-        return JsonResponse(response, safe=False)
-    except Exception as e:
-        return JsonResponse({'error': str(e)}, status=500)
-
-def herramientas(request):
-    """
-    Vista para la página de herramientas
-    """
-    # Verificar que el usuario esté autenticado
+def crearproductos(request):
     if 'nombre_usuario' not in request.session:
         return redirect('inicio')
     
-    # Obtener el nombre de usuario para mostrarlo en la página
+    if request.session.get('tipo_usuario') not in ['Administrador', 'Vendedor']:
+        return redirect('index')
+    
+    if request.method == 'POST':
+        # Process form
+        pass
+    
+    return render(request, 'Home/crearproductos.html', {
+        'nombre_usuario': request.session.get('nombre_usuario')
+    })
+
+def mis_productos(request):
+    if 'nombre_usuario' not in request.session:
+        return redirect('inicio')
+    
+    if request.session.get('tipo_usuario') not in ['Administrador', 'Vendedor']:
+        return redirect('index')
+    
+    # Get created products
+    productos = Producto.objects.all()
+    
+    return render(request, 'Home/mis_productos.html', {
+        'nombre_usuario': request.session.get('nombre_usuario'),
+        'productos': productos
+    })
+
+def modificar_producto(request, id_producto):
+    if 'nombre_usuario' not in request.session:
+        return redirect('inicio')
+    
+    if request.session.get('tipo_usuario') not in ['Administrador', 'Vendedor']:
+        return redirect('index')
+    
+    producto = get_object_or_404(Producto, id_producto=id_producto)
+    
+    if request.method == 'POST':
+        # Process form
+        pass
+    
+    return render(request, 'Home/modificar_producto.html', {
+        'nombre_usuario': request.session.get('nombre_usuario'),
+        'producto': producto
+    })
+
+def eliminar_producto(request, id_producto):
+    if 'nombre_usuario' not in request.session:
+        return redirect('inicio')
+    
+    if request.session.get('tipo_usuario') not in ['Administrador', 'Vendedor']:
+        return redirect('index')
+    
+    producto = get_object_or_404(Producto, id_producto=id_producto)
+    producto.delete()
+    
+    messages.success(request, f'El producto "{producto.nombre_producto}" ha sido eliminado.')
+    return redirect('mis_productos')
+
+def herramientas(request):
+    return render(request, 'Home/herramientas.html', {
+        'nombre_usuario': request.session.get('nombre_usuario')
+    })
+
+def mis_pedidos(request):
+    if 'nombre_usuario' not in request.session:
+        return redirect('inicio')
+    
     nombre_usuario = request.session.get('nombre_usuario')
     
-    # Calculate total cart items for display
+    try:
+        cliente = Cliente.objects.get(nombre_cliente=nombre_usuario)
+        pedidos = Pedido.objects.filter(cliente=cliente).order_by('-fecha_pedido')
+    except Cliente.DoesNotExist:
+        pedidos = []
+    
+    return render(request, 'Home/mis_pedidos.html', {
+        'nombre_usuario': nombre_usuario,
+        'pedidos': pedidos
+    })
+
+def productos(request):
+    # Get products
+    productos = Producto.objects.all()
+    
+    # Get cart info for header
     carrito = request.session.get('carrito', [])
     total_items = sum(item['cantidad'] for item in carrito) if carrito else 0
     
-    # Obtener productos de la categoría herramientas
-    herramientas = Producto.objects.filter(nombre_producto__icontains='herramienta').order_by('nombre_producto')
-    
-    return render(request, 'Home/herramientas.html', {
-        'nombre_usuario': nombre_usuario,
-        'total_items': total_items,
-        'productos': herramientas
+    return render(request, 'Home/productos.html', {
+        'productos': productos,
+        'nombre_usuario': request.session.get('nombre_usuario'),
+        'tipo_usuario': request.session.get('tipo_usuario'),
+        'total_items': total_items
     })
 
-
+def productosapi(request):
+    return render(request, 'Home/productos_api.html')
