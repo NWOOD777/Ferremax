@@ -45,17 +45,12 @@ Esto creará todas las tablas y cargará automáticamente:
 - Cliente por defecto (si no existen clientes)
 - Producto por defecto (si no existen productos)
 
-> **Nota sobre datos automáticos**: Las migraciones `0012_crear_producto_por_defecto` y `0013_crear_cliente_por_defecto` verifican si ya existen datos antes de crear los datos por defecto. Esto garantiza que no se dupliquen registros y que siempre haya al menos un cliente y un producto en el sistema.
-
 ### 5. Crea el superusuario predefinido para acceso administrativo
 
 ```bash
 python manage.py crear_superusuario
 ```
-Este comando crea un superusuario con las siguientes credenciales:
-- Usuario: admin
-- Contraseña: ferremax2025
-- Email: admin@ferremax.cl
+Este comando crea un superusuario para ingresar al panel de admin de django
 
 O en Windows, simplemente ejecuta:
 ```bash
