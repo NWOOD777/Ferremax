@@ -34,6 +34,7 @@ class ProductoForm(forms.ModelForm):
                 'class': 'form-select'
             }),
             'imagen': forms.ClearableFileInput(attrs={
-                'class': 'form-control'
+                'class': 'form-control',
+                'required': True
             }),
         }

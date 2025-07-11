@@ -26,10 +26,14 @@
         
         .product-card {
             height: 100%;
-            border-radius: 10px;
+            border-radius: 12px;
             overflow: hidden;
             transition: transform 0.3s, box-shadow 0.3s;
             margin-bottom: 25px;
+            border: none;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+            display: flex;
+            flex-direction: column;
         }
         
         .product-card:hover {
@@ -37,23 +41,60 @@
             box-shadow: 0 10px 20px rgba(0,0,0,0.1);
         }
         
+        /* Force all cards to have the same height */
+        .row-cols-1 > .col {
+            display: flex;
+        }
+        
         .product-image {
-            height: 200px;
             background-color: #fff;
             display: flex;
             align-items: center;
             justify-content: center;
             overflow: hidden;
+            border-bottom: 1px solid rgba(0,0,0,0.05);
+            position: relative;
+            padding: 0;
+            min-height: 220px;
         }
         
-        .product-image img {
+        .image-wrapper {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 220px;
+            background-color: #ffffff;
+            overflow: hidden;
+            padding: 10px;
+            width: 100%;
+        }
+        
+        .product-img {
             max-height: 180px;
-            max-width: 90%;
+            width: auto;
+            max-width: 85%;
             object-fit: contain;
+            transition: transform 0.5s ease;
+            display: block;
+            margin: 0 auto;
+            mix-blend-mode: multiply; /* This helps with white backgrounds */
+        }
+        
+        .product-card:hover .product-img {
+            transform: scale(1.08);
         }
         
         .product-details {
-            padding: 15px;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            flex: 1; /* This makes the details section fill the remaining space */
+            min-height: 200px; /* Ensures a minimum height for consistent cards */
+        }
+        
+        /* Add this class to ensure the button stays at the bottom */
+        .mt-auto {
+            margin-top: auto !important;
         }
         
         .product-title {
@@ -64,41 +105,106 @@
             display: -webkit-box;
             -webkit-line-clamp: 2;
             -webkit-box-orient: vertical;
+            font-size: 1.1rem;
+            color: #333;
+            line-height: 1.4;
+        }
+        
+        /* Responsive adjustments */
+        @media (max-width: 576px) {
+            .image-wrapper {
+                height: 180px;
+            }
+            .product-img {
+                max-height: 140px;
+            }
         }
         
         .product-brand {
             font-size: 0.85rem;
             color: #6c757d;
             margin-bottom: 12px;
+            display: inline-block;
+            background-color: #f8f9fa;
+            padding: 3px 8px;
+            border-radius: 4px;
         }
         
         .product-price {
             font-weight: 700;
-            font-size: 1.2rem;
-            color: #212529;
+            font-size: 1.25rem;
+            color: #4C71AF;
             margin-bottom: 15px;
         }
         
         .product-stock {
             font-size: 0.85rem;
             margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            padding: 5px 0;
         }
         
         .in-stock {
             color: #28a745;
+            font-weight: 500;
         }
         
         .low-stock {
             color: #ffc107;
+            font-weight: 500;
         }
         
         .out-stock {
             color: #dc3545;
+            font-weight: 500;
         }
         
         .btn-add-cart {
             width: 100%;
-            border-radius: 5px;
+            border-radius: 8px;
+            padding: 10px 15px;
+            transition: all 0.3s;
+            margin-top: auto;
+            font-weight: 500;
+            text-transform: uppercase;
+            font-size: 0.9rem;
+            letter-spacing: 0.5px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .btn-add-cart:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+        }
+        
+        .btn-add-cart.adding {
+            pointer-events: none;
+            background-color: #4CAF50; /* Success green color */
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .btn-add-cart.adding::after {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+            animation: shimmer 1.5s infinite;
+        }
+        
+        /* Button hover and active states */
+        .btn-add-cart:active {
+            transform: scale(0.98);
+        }
+        
+        @keyframes shimmer {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
         }
         
         .filters {
@@ -217,45 +323,63 @@
             
             <div class="col-lg-9">
                 {% if productos %}
-                    <div class="row">
+                    <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 g-3">
                         {% for producto in productos %}
-                            <div class="col-md-4">
+                            <div class="col mb-4">
                                 <div class="card product-card">
                                     <div class="product-image">
                                         {% if producto.imagen %}
-                                            <img src="{{ producto.imagen.url }}" alt="{{ producto.nombre_producto }}">
+                                            <div class="image-wrapper">
+                                                <img src="{{ producto.imagen.url }}" class="product-img" alt="{{ producto.nombre_producto }}">
+                                            </div>
                                         {% else %}
-                                            <i class="fas fa-box fa-3x text-muted"></i>
+                                            <div class="image-wrapper d-flex justify-content-center align-items-center">
+                                                <i class="fas fa-box fa-3x text-muted"></i>
+                                            </div>
+                                        {% endif %}
+                                        
+                                        <!-- Stock badge -->
+                                        {% if producto.stock_total > 10 %}
+                                            <div class="position-absolute top-0 end-0 m-2">
+                                                <span class="badge bg-success rounded-pill px-3 py-2">
+                                                    <i class="fas fa-check-circle me-1"></i>En stock
+                                                </span>
+                                            </div>
+                                        {% elif producto.stock_total > 0 %}
+                                            <div class="position-absolute top-0 end-0 m-2">
+                                                <span class="badge rounded-pill px-3 py-2" style="background-color: #ffda6a; color: #664d03; font-weight: 600; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                                                    <i class="fas fa-exclamation-circle me-1"></i>Pocas unidades
+                                                </span>
+                                            </div>
+                                        {% else %}
+                                            <div class="position-absolute top-0 end-0 m-2">
+                                                <span class="badge bg-danger rounded-pill px-3 py-2">
+                                                    <i class="fas fa-times-circle me-1"></i>Sin stock
+                                                </span>
+                                            </div>
                                         {% endif %}
                                     </div>
                                     <div class="product-details">
                                         <h5 class="product-title">{{ producto.nombre_producto }}</h5>
-                                        <p class="product-brand">{{ producto.marca }}</p>
-                                        <p class="product-price">${{ producto.precio_unitario|floatformat:0 }}</p>
+                                        <span class="product-brand">{{ producto.marca }}</span>
+                                        <div class="d-flex justify-content-between align-items-center mt-2 mb-3">
+                                            <p class="product-price mb-0">${{ producto.precio_unitario|floatformat:0 }}</p>
+                                            <small class="text-muted">Stock: {{ producto.stock_total }}</small>
+                                        </div>
                                         
-                                        {% if producto.stock_total > 10 %}
-                                            <p class="product-stock in-stock">
-                                                <i class="fas fa-check-circle me-1"></i>En stock ({{ producto.stock_total }})
-                                            </p>
-                                        {% elif producto.stock_total > 0 %}
-                                            <p class="product-stock low-stock">
-                                                <i class="fas fa-exclamation-circle me-1"></i>Pocas unidades ({{ producto.stock_total }})
-                                            </p>
-                                        {% else %}
-                                            <p class="product-stock out-stock">
-                                                <i class="fas fa-times-circle me-1"></i>Sin stock
-                                            </p>
-                                        {% endif %}
-                                        
-                                        {% if producto.stock_total > 0 %}
-                                            <a href="{% url 'agregar_al_carrito' producto.id_producto %}" class="btn btn-primary btn-add-cart">
-                                                <i class="fas fa-cart-plus me-2"></i>Añadir al carrito
-                                            </a>
-                                        {% else %}
-                                            <button class="btn btn-secondary btn-add-cart" disabled>
-                                                <i class="fas fa-times-circle me-2"></i>Sin disponibilidad
-                                            </button>
-                                        {% endif %}
+                                        <div class="mt-auto">
+                                            {% if producto.stock_total > 0 %}
+                                                <a href="{% url 'agregar_al_carrito' producto.id_producto %}" 
+                                                   class="btn btn-primary btn-add-cart add-to-cart"
+                                                   data-product-id="{{ producto.id_producto }}">
+                                                    <i class="fas fa-cart-plus me-2"></i><span>Añadir al carrito</span>
+                                                </a>
+                                            {% else %}
+                                                <button class="btn btn-secondary btn-add-cart" disabled>
+                                                    <i class="fas fa-times-circle me-2"></i>Sin disponibilidad
+                                                </button>
+                                            {% endif %}
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -295,59 +419,124 @@
                 document.getElementById('showOnlyInStock').checked = false;
                 applyFilters();
             });
-        });
-        
-        // Function to apply filters
-        function applyFilters() {
-            const searchTerm = document.getElementById('search').value.toLowerCase();
-            const maxPrice = parseInt(document.getElementById('priceRange').value);
-            const showOnlyInStock = document.getElementById('showOnlyInStock').checked;
             
-            // Get all product cards
-            const productCards = document.querySelectorAll('.col-md-4');
-            let visibleCount = 0;
-            
-            productCards.forEach(card => {
-                let shouldShow = true;
-                const productName = card.querySelector('.product-title').textContent.toLowerCase();
-                const productBrand = card.querySelector('.product-brand').textContent.toLowerCase();
-                const productPrice = parseInt(card.querySelector('.product-price').textContent.replace('$', '').replace(',', ''));
-                const stockText = card.querySelector('.product-stock').textContent;
-                const hasStock = !stockText.includes('Sin stock');
-                
-                // Apply search filter
-                if (searchTerm && !productName.includes(searchTerm) && !productBrand.includes(searchTerm)) {
-                    shouldShow = false;
-                }
-                
-                // Apply price filter
-                if (maxPrice && productPrice > maxPrice) {
-                    shouldShow = false;
-                }
-                
-                // Apply stock filter
-                if (showOnlyInStock && !hasStock) {
-                    shouldShow = false;
-                }
-                
-                // Show or hide the card
-                if (shouldShow) {
-                    card.style.display = '';
-                    visibleCount++;
-                } else {
-                    card.style.display = 'none';
-                }
+            // Add to cart AJAX functionality
+            document.querySelectorAll('.add-to-cart').forEach(button => {
+                button.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    
+                    const productId = this.dataset.productId;
+                    const buttonText = this.querySelector('span');
+                    const originalText = buttonText.textContent;
+                    const cartBadge = document.querySelector('.cart-badge .cart-count');
+                    
+                    // Visual feedback - button animation
+                    this.classList.add('adding');
+                    buttonText.textContent = 'Añadiendo...';
+                    
+                    // Send AJAX request
+                    fetch(`/agregar_al_carrito/${productId}?ajax=true`, {
+                        method: 'GET',
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest'
+                        }
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            // Update cart count
+                            if (cartBadge) {
+                                cartBadge.textContent = data.total_items;
+                            } else if (data.total_items > 0) {
+                                // Create new cart badge if it doesn't exist
+                                const cartLink = document.querySelector('.cart-badge');
+                                const newBadge = document.createElement('span');
+                                newBadge.className = 'cart-count';
+                                newBadge.textContent = data.total_items;
+                                cartLink.appendChild(newBadge);
+                            }
+                            
+                            // Success animation
+                            buttonText.textContent = '¡Añadido!';
+                            setTimeout(() => {
+                                buttonText.textContent = originalText;
+                                this.classList.remove('adding');
+                            }, 1000);
+                        } else {
+                            // Error handling
+                            buttonText.textContent = 'Error';
+                            setTimeout(() => {
+                                buttonText.textContent = originalText;
+                                this.classList.remove('adding');
+                            }, 1000);
+                            console.error('Error adding to cart:', data.message);
+                        }
+                    })
+                    .catch(error => {
+                        // Error handling
+                        buttonText.textContent = 'Error';
+                        setTimeout(() => {
+                            buttonText.textContent = originalText;
+                            this.classList.remove('adding');
+                        }, 1000);
+                        console.error('Error:', error);
+                    });
+                });
             });
             
-            // Show message if no products match filters
-            const noProductsMessage = document.querySelector('.alert-info');
-            if (visibleCount === 0 && noProductsMessage) {
-                noProductsMessage.textContent = 'No hay productos que coincidan con los filtros aplicados.';
-                noProductsMessage.style.display = 'block';
-            } else if (noProductsMessage) {
-                noProductsMessage.style.display = productCards.length ? 'none' : 'block';
+            // Function to apply filters
+            function applyFilters() {
+                const searchTerm = document.getElementById('search').value.toLowerCase();
+                const maxPrice = parseInt(document.getElementById('priceRange').value);
+                const showOnlyInStock = document.getElementById('showOnlyInStock').checked;
+                
+                // Get all product cards
+                const productCards = document.querySelectorAll('.row-cols-1 > .col');
+                let visibleCount = 0;
+                
+                productCards.forEach(card => {
+                    let shouldShow = true;
+                    const productName = card.querySelector('.product-title').textContent.toLowerCase();
+                    const productBrand = card.querySelector('.product-brand').textContent.toLowerCase();
+                    const productPrice = parseInt(card.querySelector('.product-price').textContent.replace('$', '').replace(',', ''));
+                    const stockText = card.querySelector('.text-muted').textContent;
+                    const stockAmount = parseInt(stockText.replace('Stock:', '').trim());
+                    const hasStock = stockAmount > 0;
+                    
+                    // Apply search filter
+                    if (searchTerm && !productName.includes(searchTerm) && !productBrand.includes(searchTerm)) {
+                        shouldShow = false;
+                    }
+                    
+                    // Apply price filter
+                    if (maxPrice && productPrice > maxPrice) {
+                        shouldShow = false;
+                    }
+                    
+                    // Apply stock filter
+                    if (showOnlyInStock && !hasStock) {
+                        shouldShow = false;
+                    }
+                    
+                    // Show or hide the card
+                    if (shouldShow) {
+                        card.style.display = '';
+                        visibleCount++;
+                    } else {
+                        card.style.display = 'none';
+                    }
+                });
+                
+                // Show message if no products match filters
+                const noProductsMessage = document.querySelector('.alert-info');
+                if (visibleCount === 0 && noProductsMessage) {
+                    noProductsMessage.textContent = 'No hay productos que coincidan con los filtros aplicados.';
+                    noProductsMessage.style.display = 'block';
+                } else if (noProductsMessage) {
+                    noProductsMessage.style.display = productCards.length ? 'none' : 'block';
+                }
             }
-        }
+        });
     </script>
 </body>
 </html>

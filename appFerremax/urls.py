@@ -20,6 +20,7 @@ urlpatterns = [
     path('api_empleados_django/', views.api_empleados_django, name='api_empleados_django'),
     path('checkout/', views.checkout, name='checkout'),
     path('ejecutar_pago/', views.ejecutar_pago_view, name='ejecutar_pago'),
+    path('ejecutar_pago_ajax/', views.ejecutar_pago_ajax, name='ejecutar_pago_ajax'),
     path('confirmacion_pedido/<int:id_pedido>/', views.confirmacion_pedido, name='confirmacion_pedido'),
     path('cambiar_estado_pedido/<int:id_pedido>/', views.cambiar_estado_pedido, name='cambiar_estado_pedido'),
     path('recuperar_contrasena/', auth_views.PasswordResetView.as_view(template_name="Home/recuperar_contra/recuperar_contrasena.html"), name="recuperar_contrasena"),

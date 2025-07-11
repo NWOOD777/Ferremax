@@ -1,6 +1,6 @@
 // Script para convertir monedas
 let exchangeRate = 850; // Valor predeterminado, 1 USD = 850 CLP
-let currentCurrency = 'CLP'; // Moneda por defecto
+let currentCurrency = 'CLP'; // Moneda por defecto - siempre iniciamos en CLP
 
 // Exponer variables para que otros scripts puedan usarlas
 window.exchangeRate = exchangeRate;
@@ -104,7 +104,7 @@ function convertPrices() {
         
         // Mostrar indicador de carga
         const spinner = activeButton.querySelector('.loading-spinner');
-        // Para el botón simple sin spans
+        // Para el botón simple sin spans o con estructura moderna
         const isSimpleBtn = activeButton.id === 'currency-toggle-btn';
         
         // Manejar el spinner según el tipo de botón
@@ -154,7 +154,13 @@ function convertPrices() {
             
             // Actualizar texto del botón según tipo
             if (isSimpleBtn) {
-                activeButton.textContent = 'USD → CLP';
+                // Para el nuevo diseño de botón con clase currency-text
+                const currencyText = activeButton.querySelector('.currency-text');
+                if (currencyText) {
+                    currencyText.textContent = 'USD';
+                } else {
+                    activeButton.textContent = 'USD → CLP';
+                }
             } else {
                 const btnText = activeButton.querySelector('span:first-child');
                 if (btnText) btnText.textContent = 'USD → CLP';
@@ -169,13 +175,13 @@ function convertPrices() {
                 if (el.offsetParent !== null) {
                     const originalPrice = el.getAttribute('data-original-price');
                     if (originalPrice) {
-                        el.innerHTML = `$${parseInt(originalPrice).toLocaleString('es-CL')}`;
+                        el.innerHTML = `CLP $${parseInt(originalPrice).toLocaleString('es-CL')}`;
                     } else {
                         // Si no tenemos el precio original guardado, convertir de USD a CLP
                         const priceUSD = parseFloat(el.textContent.replace(/[^\d.]/g, ''));
                         if (!isNaN(priceUSD)) {
                             const priceCLP = priceUSD * exchangeRate;
-                            el.innerHTML = `$${Math.round(priceCLP).toLocaleString('es-CL')}`;
+                            el.innerHTML = `CLP $${Math.round(priceCLP).toLocaleString('es-CL')}`;
                         }
                     }
                 }
@@ -189,7 +195,13 @@ function convertPrices() {
             
             // Actualizar texto del botón según tipo
             if (isSimpleBtn) {
-                activeButton.textContent = 'CLP → USD';
+                // Para el nuevo diseño de botón con clase currency-text
+                const currencyText = activeButton.querySelector('.currency-text');
+                if (currencyText) {
+                    currencyText.textContent = 'CLP';
+                } else {
+                    activeButton.textContent = 'CLP → USD';
+                }
             } else {
                 const btnText = activeButton.querySelector('span:first-child');
                 if (btnText) btnText.textContent = 'CLP → USD';
@@ -245,7 +257,7 @@ function updateCartPrices() {
             if (currentCurrency === 'USD') {
                 el.innerHTML = `$${total.toFixed(2)} <small>USD</small>`;
             } else {
-                el.innerHTML = `$${Math.round(total).toLocaleString('es-CL')}`;
+                el.innerHTML = `CLP $${Math.round(total).toLocaleString('es-CL')}`;
             }
         });
     }
@@ -272,14 +284,13 @@ document.addEventListener('DOMContentLoaded', async function() {
             // Para botón simple, actualizar directamente
             if (!activeButton.textContent.includes('→')) {
                 activeButton.textContent = 'CLP → USD';
+            }            } else {
+                // Para botón con span, actualizar el span
+                const btnText = activeButton.querySelector('span:first-child');
+                if (btnText) {
+                    btnText.textContent = 'CLP → USD';
+                }
             }
-        } else {
-            // Para botón con span, actualizar el span
-            const btnText = activeButton.querySelector('span:first-child');
-            if (btnText && !btnText.textContent.includes('→')) {
-                btnText.textContent = 'CLP → USD';
-            }
-        }
     }
     
     // Exponer una función para convertir precios de productos

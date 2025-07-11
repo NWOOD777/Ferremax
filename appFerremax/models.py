@@ -94,7 +94,7 @@ class Producto(models.Model):
     precio_unitario = models.DecimalField(max_digits=10, decimal_places=2)
     stock_total = models.IntegerField()
     sucursal = models.ForeignKey(Sucursal, on_delete=models.CASCADE)
-    imagen = models.ImageField(upload_to='productos/', null=True, blank=True, default='imagenes_ferremas/nostock.png')
+    imagen = models.ImageField(upload_to='productos/', null=False, blank=False)
     creado_por = models.ForeignKey(Empleado, on_delete=models.SET_NULL, null=True, related_name='productos_creados')
     fecha_creacion = models.DateTimeField(auto_now_add=True, null=True)
     
@@ -138,6 +138,8 @@ class Pedido(models.Model):
 class DetalleProducto(models.Model):
     id = models.AutoField(primary_key=True)
     cantidad = models.IntegerField()
+    # Eliminado precio_unitario ya que no existe en la BD
+    # Para obtener el precio, usar siempre producto.precio_unitario
     producto = models.ForeignKey(Producto, on_delete=models.CASCADE)
     pedido = models.ForeignKey(Pedido, on_delete=models.CASCADE)
 

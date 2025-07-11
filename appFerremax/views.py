@@ -5,7 +5,7 @@ from django.utils import timezone
 from django.urls import reverse
 from django.conf import settings
 import json
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 from datetime import date
 
 from .models import Cargo, Cliente, Empleado, Sucursal, Producto, Pedido, DetalleProducto, MetodoPago, EstadoPago, Pago
@@ -283,14 +283,55 @@ def carrito(request):
     total_items = sum(item['cantidad'] for item in carrito) if carrito else 0
     nombre_usuario = request.session.get('nombre_usuario')
     
-    # Calculate subtotal
-    subtotal = sum(item['precio'] * item['cantidad'] for item in carrito) if carrito else 0
+    # Calculate subtotal - asegurándonos que sea Decimal
+    subtotal = Decimal('0')
+    
+    # Enrich cart items with stock information
+    productos_problematicos = []
+    for item in carrito:
+        # Convertir precio y cantidad a Decimal para evitar problemas de tipo
+        precio = Decimal(str(item['precio']))
+        cantidad = Decimal(str(item['cantidad']))
+        subtotal += precio * cantidad
+        
+        # Get current stock from database
+        try:
+            producto = Producto.objects.get(id_producto=item['id'])
+            item['stock'] = producto.stock_total
+            
+            # Check for negative or low stock
+            if producto.stock_total < 0:
+                productos_problematicos.append({
+                    'id': producto.id_producto,
+                    'nombre': producto.nombre_producto,
+                    'stock_actual': producto.stock_total,
+                    'cantidad_solicitada': item['cantidad'],
+                    'tipo': 'negativo'
+                })
+            elif producto.stock_total < item['cantidad']:
+                productos_problematicos.append({
+                    'id': producto.id_producto,
+                    'nombre': producto.nombre_producto,
+                    'stock_actual': producto.stock_total,
+                    'cantidad_solicitada': item['cantidad'],
+                    'tipo': 'insuficiente'
+                })
+        except Producto.DoesNotExist:
+            item['stock'] = 0
+            productos_problematicos.append({
+                'id': item['id'],
+                'nombre': item['nombre'],
+                'stock_actual': 0,
+                'cantidad_solicitada': item['cantidad'],
+                'tipo': 'no_existe'
+            })
     
     # Apply discount: 25% off if 4 or more items in cart
-    discount = 0
+    discount = Decimal('0')
     if total_items >= 4:
         discount = subtotal * Decimal('0.25')
     
+    # Calcular el total final como Decimal
     total = subtotal - discount
     
     return render(request, 'Home/carrito.html', {
@@ -299,7 +340,8 @@ def carrito(request):
         'nombre_usuario': nombre_usuario,
         'subtotal': subtotal,
         'discount': discount,
-        'total': total
+        'total': total,
+        'productos_problematicos': productos_problematicos
     })
 
 def agregar_al_carrito(request, id_producto):
@@ -309,35 +351,104 @@ def agregar_al_carrito(request, id_producto):
     # Get or initialize cart
     carrito = request.session.get('carrito', [])
     
-    # Check if product already in cart
-    found = False
-    for item in carrito:
-        if item['id'] == id_producto:
-            item['cantidad'] += 1
-            found = True
-            break
+    # Check if it's a POST request from the cart page with a specific quantity
+    if request.method == 'POST' and request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        try:
+            # Get the requested quantity from POST data
+            nueva_cantidad = int(request.POST.get('cantidad', 1))
+            
+            # Find and update the product in cart
+            found = False
+            for item in carrito:
+                if item['id'] == id_producto:
+                    item['cantidad'] = nueva_cantidad  # Set to the exact quantity provided
+                    found = True
+                    break
+            
+            # If not found, add new item with the requested quantity
+            if not found:
+                carrito.append({
+                    'id': id_producto,
+                    'nombre': producto.nombre_producto,
+                    'precio': float(producto.precio_unitario),
+                    'cantidad': nueva_cantidad,
+                    'imagen': producto.imagen.url if producto.imagen else None
+                })
+                
+            # Save to session
+            request.session['carrito'] = carrito
+            
+            # Return success response for AJAX request
+            return JsonResponse({'status': 'success', 'message': f'Cantidad actualizada: {nueva_cantidad}'})
+            
+        except (ValueError, TypeError) as e:
+            # Handle invalid quantity
+            return JsonResponse({'status': 'error', 'message': 'Cantidad inválida'}, status=400)
     
-    # If not found, add new item
-    if not found:
-        carrito.append({
-            'id': id_producto,
-            'nombre': producto.nombre_producto,
-            'precio': float(producto.precio_unitario),
-            'cantidad': 1,
-            'imagen': producto.imagen.url if producto.imagen else None
+    # Handle AJAX GET requests (from productos.html)
+    elif request.GET.get('ajax') == 'true':
+        # Check if product already in cart
+        found = False
+        for item in carrito:
+            if item['id'] == id_producto:
+                item['cantidad'] += 1  # Increment by 1
+                found = True
+                break
+        
+        # If not found, add new item with quantity 1
+        if not found:
+            carrito.append({
+                'id': id_producto,
+                'nombre': producto.nombre_producto,
+                'precio': float(producto.precio_unitario),
+                'cantidad': 1,
+                'imagen': producto.imagen.url if producto.imagen else None
+            })
+        
+        # Save to session
+        request.session['carrito'] = carrito
+        
+        # Calculate total items
+        total_items = sum(item['cantidad'] for item in carrito)
+        
+        # Return JSON response for AJAX
+        return JsonResponse({
+            'success': True, 
+            'message': f'"{producto.nombre_producto}" añadido al carrito.',
+            'total_items': total_items
         })
     
-    # Save to session
-    request.session['carrito'] = carrito
+    # Regular GET request handling (adding single item to cart)
+    else:
+        # Check if product already in cart
+        found = False
+        for item in carrito:
+            if item['id'] == id_producto:
+                item['cantidad'] += 1  # Increment by 1
+                found = True
+                break
+        
+        # If not found, add new item with quantity 1
+        if not found:
+            carrito.append({
+                'id': id_producto,
+                'nombre': producto.nombre_producto,
+                'precio': float(producto.precio_unitario),
+                'cantidad': 1,
+                'imagen': producto.imagen.url if producto.imagen else None
+            })
+        
+        # Save to session
+        request.session['carrito'] = carrito
+        
+        # Show message for regular page navigation
+        messages.success(request, f'"{producto.nombre_producto}" añadido al carrito.')
     
-    # Show message
-    messages.success(request, f'"{producto.nombre_producto}" añadido al carrito.')
-    
-    # Redirect to previous page or products page
-    referer = request.META.get('HTTP_REFERER')
-    if referer:
-        return redirect(referer)
-    return redirect('productos')
+        # Redirect to previous page or products page
+        referer = request.META.get('HTTP_REFERER')
+        if referer:
+            return redirect(referer)
+        return redirect('productos')
 
 def remove_from_cart(request, id_producto):
     # Get cart
@@ -451,8 +562,8 @@ def ejecutar_pago_view(request):
             DetalleProducto.objects.create(
                 pedido=pedido,
                 producto=producto,
-                cantidad=item['cantidad'],
-                precio_unitario=item['precio']
+                cantidad=item['cantidad']
+                # No usar precio_unitario ya que no existe la columna en la BD
             )
             
             # Update stock
@@ -562,12 +673,48 @@ def crearproductos(request):
     if request.session.get('tipo_usuario') not in ['Administrador', 'Vendedor']:
         return redirect('index')
     
+    mensaje = None
+    
     if request.method == 'POST':
-        # Process form
-        pass
+        # Importar aquí para evitar importación circular
+        from .forms import ProductoForm
+        form = ProductoForm(request.POST, request.FILES)
+        if form.is_valid():
+            # Guardar pero no hacer commit para añadir datos adicionales
+            producto = form.save(commit=False)
+            # Verificar que la imagen está presente
+            if not request.FILES.get('imagen'):
+                form.add_error('imagen', 'La imagen es obligatoria')
+            else:
+                # Intentar obtener el id del usuario de la sesión
+                id_usuario = request.session.get('id_usuario')
+                
+                # Si tenemos un ID de empleado, intentar asignar el creador
+                if id_usuario:
+                    try:
+                        empleado = Empleado.objects.get(id_empleado=id_usuario)
+                        producto.creado_por = empleado
+                    except Empleado.DoesNotExist:
+                        # Si no existe, continuamos sin asignar creador
+                        pass
+                
+                # Asignar fecha de creación
+                producto.fecha_creacion = timezone.now()
+                
+                # Guardar el producto
+                producto.save()
+                mensaje = "Producto creado exitosamente"
+                # Redirigir o crear nuevo formulario
+                form = ProductoForm()
+    else:
+        # Importar aquí para evitar importación circular
+        from .forms import ProductoForm
+        form = ProductoForm()
     
     return render(request, 'Home/crearproductos.html', {
-        'nombre_usuario': request.session.get('nombre_usuario')
+        'nombre_usuario': request.session.get('nombre_usuario'),
+        'form': form,
+        'mensaje': mensaje
     })
 
 def mis_productos(request):
@@ -655,3 +802,174 @@ def productos(request):
 
 def productosapi(request):
     return render(request, 'Home/productos_api.html')
+
+import json
+from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_POST
+from .models import Cliente, Producto, Pedido, DetalleProducto
+
+@csrf_exempt
+@require_POST
+def ejecutar_pago_ajax(request):
+    """
+    Procesa un pago de PayPal recibido vía AJAX
+    """
+    try:
+        print("Iniciando procesamiento de pago via AJAX")
+        
+        # Obtener datos del cuerpo JSON
+        data = json.loads(request.body)
+        print(f"Datos recibidos: {data}")
+        
+        cart_items = data.get('cart', [])
+        payment_id = data.get('payment_id')
+        payer_id = data.get('payer_id')
+        
+        print(f"Cart items: {cart_items}")
+        print(f"Payment ID: {payment_id}")
+        print(f"Payer ID: {payer_id}")
+        
+        # Log detailed cart item information for debugging
+        print("----- DETALLE DE ITEMS EN EL CARRITO -----")
+        for i, item in enumerate(cart_items):
+            quantity = int(item.get('quantity', 0))
+            print(f"Item {i+1}: ID={item['id']}, Nombre={item.get('nombre', 'N/A')}, Price={item.get('price', 0)}, Cantidad={quantity}")
+        print("------------------------------------------")
+        
+        if not cart_items or not payment_id or not payer_id:
+            print("Error: Datos incompletos para procesar el pago")
+            return JsonResponse({
+                'success': False, 
+                'error': 'Datos incompletos para procesar el pago'
+            }, status=400)
+        
+        # Calcular el total del carrito usando Decimal para evitar problemas de tipos
+        total = Decimal('0')
+        for item in cart_items:
+            price = Decimal(str(item['price']))
+            quantity = Decimal(str(item['quantity']))
+            total += price * quantity
+        
+        # Aplicar descuento si hay 4 o más productos
+        total_items = sum(int(item['quantity']) for item in cart_items)
+        if total_items >= 4:
+            total = total * Decimal('0.75')  # 25% de descuento
+        
+        # Verificar si hay usuario autenticado
+        if 'nombre_usuario' not in request.session:
+            return JsonResponse({
+                'success': False, 
+                'error': 'Usuario no autenticado'
+            }, status=403)
+            
+        nombre_usuario = request.session.get('nombre_usuario')
+        
+        try:
+            # Obtener el cliente
+            cliente = Cliente.objects.get(nombre_cliente=nombre_usuario)
+            
+            # Crear el pedido
+            # Asegurar que el total sea un Decimal con dos decimales
+            total_decimal = Decimal(str(total)).quantize(Decimal('0.01'))
+            
+            pedido = Pedido.objects.create(
+                cliente=cliente,
+                tipo_entrega='Despacho',  # Valor predeterminado
+                estado_pedido='Aprobado',
+                paypal_payment_id=payment_id,
+                total=total_decimal
+            )
+            
+            # Verificar stock antes de procesar
+            stock_issues = []
+            for item in cart_items:
+                product_id = int(item['id']) if isinstance(item['id'], str) else item['id']
+                try:
+                    producto = Producto.objects.get(id_producto=product_id)
+                    item_quantity = int(item['quantity']) if str(item['quantity']).isdigit() else 1
+                    
+                    # Verificar si hay problemas de stock
+                    if producto.stock_total < 0:
+                        stock_issues.append(f"Producto '{producto.nombre_producto}' tiene stock negativo ({producto.stock_total}).")
+                    elif producto.stock_total < item_quantity:
+                        stock_issues.append(f"Stock insuficiente para '{producto.nombre_producto}'. Solicitado: {item_quantity}, Disponible: {producto.stock_total}.")
+                except Producto.DoesNotExist:
+                    stock_issues.append(f"El producto con ID {product_id} ya no existe en el catálogo.")
+            
+            # Si hay problemas de stock, no procesar el pedido
+            if stock_issues:
+                return JsonResponse({
+                    'success': False,
+                    'error': 'Problemas de stock detectados',
+                    'details': stock_issues
+                }, status=400)
+            
+            # Agregar productos al pedido
+            for item in cart_items:
+                # Asegurar que el ID sea un entero
+                product_id = int(item['id']) if isinstance(item['id'], str) else item['id']
+                producto = Producto.objects.get(id_producto=product_id)
+                
+                # Obtener la cantidad del item y asegurarse de que sea un entero válido
+                item_quantity = int(item['quantity']) if str(item['quantity']).isdigit() else 1
+                if item_quantity < 1:
+                    print(f"ADVERTENCIA: Cantidad inválida ({item['quantity']}) para producto {producto.nombre_producto}, usando 1 en su lugar")
+                    item_quantity = 1
+                
+                # Crear el detalle del producto sin usar precio_unitario
+                detalle = DetalleProducto(
+                    pedido=pedido,
+                    producto=producto,
+                    cantidad=item_quantity,
+                )
+                
+                # No usar precio_unitario ya que no existe la columna en la BD
+                print(f"Creando detalle para producto {producto.nombre_producto}, cantidad: {detalle.cantidad} (original: {item['quantity']})")
+                
+                detalle.save()
+                
+                # Actualizar stock
+                producto.stock_total -= int(item['quantity'])
+                producto.save()
+            
+            # Limpiar el carrito en la sesión
+            request.session['carrito'] = []
+            request.session.modified = True
+            
+            return JsonResponse({
+                'success': True,
+                'pedido_id': pedido.id_pedido,
+                'mensaje': 'Pago procesado correctamente',
+                'redirect_url': f'/confirmacion_pedido/{pedido.id_pedido}/'  # Redirigir a la página de confirmación del pedido
+            })
+            
+        except Cliente.DoesNotExist:
+            return JsonResponse({
+                'success': False,
+                'error': 'Cliente no encontrado'
+            }, status=404)
+            
+        except Producto.DoesNotExist:
+            return JsonResponse({
+                'success': False,
+                'error': 'Uno o más productos no existen'
+            }, status=404)
+            
+        except Exception as e:
+            print(f"Error al procesar el pedido: {str(e)}")
+            return JsonResponse({
+                'success': False,
+                'error': f'Error al procesar el pedido: {str(e)}'
+            }, status=500)
+            
+    except json.JSONDecodeError:
+        return JsonResponse({
+            'success': False,
+            'error': 'Formato JSON inválido'
+        }, status=400)
+    except Exception as e:
+        print(f"Error general: {str(e)}")
+        return JsonResponse({
+            'success': False,
+            'error': f'Error al procesar la solicitud: {str(e)}'
+        }, status=500)

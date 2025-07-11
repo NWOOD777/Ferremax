@@ -37,7 +37,6 @@
         }
         
         .product-image {
-            height: 200px;
             background-color: #fff;
             display: flex;
             align-items: center;
@@ -45,9 +44,29 @@
             overflow: hidden;
         }
         
-        .product-image img {
-            max-height: 180px;
-            max-width: 90%;
+        .image-wrapper {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 220px;
+            background-color: #f8f9fa;
+            overflow: hidden;
+            padding: 10px;
+        }
+        
+        .product-img {
+            height: 180px;
+            width: auto;
+            max-width: 100%;
+            object-fit: contain;
+            transition: transform 0.5s ease;
+            display: block;
+            margin: 0 auto;
+        }
+        
+        .product-card:hover .product-img {
+            transform: scale(1.08);
+        }
             object-fit: contain;
         }
         
@@ -243,7 +262,9 @@
             <div class="card product-card">
                 <div class="api-badge">API</div>
                 <div class="product-image">
-                    <img src="" alt="" class="product-img">
+                    <div class="image-wrapper">
+                        <img src="" alt="" class="product-img">
+                    </div>
                 </div>
                 <div class="product-details">
                     <h5 class="product-title"></h5>

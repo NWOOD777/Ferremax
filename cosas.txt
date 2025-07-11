@@ -1,6 +1,6 @@
-BD
-User: BDFerremas
-Password: BDFerremas
+BD:
+    User: BDFerremas
+    Password: BDFerremas
 
 Superusuario
     username = 'admin'
@@ -32,7 +32,7 @@ Paypal business
 Paypal cuenta personal:
     Email: sb-sa47r443287072@personal.example.com
     Password: Vq8Y=buS
-/static<wbr>/{file_path}<
+
 App
     Name: Ferremax
     ID: AeFSoG-iJHJs-MCOwSrrVCKL7kMOo5WhE7IH9YaI8Znlcp5xZt5tfGvucUV7zGEDMl4n4bnLSgP3KXHx

@@ -292,6 +292,22 @@
             margin-bottom: 20px;
             color: #6c757d;
         }
+        
+        /* Estilos mejorados para advertencias de stock */
+        .stock-warning {
+            color: #664d03;
+            font-weight: 500;
+            background-color: #fff3cd;
+            padding: 4px 8px;
+            border-radius: 4px;
+            border-left: 3px solid #ffc107;
+        }
+        
+        .badge.bg-warning {
+            color: #664d03 !important; /* Aseguramos que el texto sea más oscuro y visible */
+            font-weight: 600;
+            background-color: #ffda6a !important; /* Un amarillo más brillante */
+        }
     </style>
 </head>
 
@@ -310,10 +326,36 @@
                 <h2 class="mb-0"><i class="fas fa-shopping-cart me-2"></i>Tu Carrito de Compras</h2>
             </div>
             
+            {% if productos_problematicos %}
+            <div class="alert mb-4" style="background-color: #fff3cd; border: 1px solid #ffecb5; border-left: 4px solid #ffc107; color: #664d03;">
+                <h5 class="alert-heading" style="color: #664d03; font-weight: bold;"><i class="fas fa-exclamation-triangle me-2"></i>Advertencia de stock</h5>
+                <p style="color: #664d03;">Se han detectado problemas con algunos productos en tu carrito:</p>
+                <ul class="mb-0 ps-3" style="color: #664d03;">
+                    {% for prod in productos_problematicos %}
+                        {% if prod.tipo == 'negativo' %}
+                        <li class="text-danger">
+                            <strong>{{ prod.nombre }}</strong>: El producto tiene stock negativo ({{ prod.stock_actual }}). Por favor, contacta con soporte.
+                        </li>
+                        {% elif prod.tipo == 'insuficiente' %}
+                        <li class="stock-warning">
+                            <strong>{{ prod.nombre }}</strong>: Stock insuficiente. Solicitaste {{ prod.cantidad_solicitada }} unidades, pero solo hay {{ prod.stock_actual }} disponibles.
+                        </li>
+                        {% elif prod.tipo == 'no_existe' %}
+                        <li class="text-danger">
+                            <strong>{{ prod.nombre }}</strong>: Este producto ya no está disponible en el catálogo.
+                        </li>
+                        {% endif %}
+                    {% endfor %}
+                </ul>
+                <hr style="border-color: #ffecb5;">
+                <p class="mb-0" style="color: #664d03; font-weight: 500;"><i class="fas fa-info-circle me-1"></i> Te recomendamos ajustar las cantidades o eliminar los productos con problemas antes de proceder al pago.</p>
+            </div>
+            {% endif %}
+            
             <div id="cart-items-container">
                 {% if carrito %}
                     {% for item in carrito %}
-                    <div class="cart-item">
+                    <div class="cart-item {% if item.stock < 0 %}border-danger border-2{% elif item.stock < item.cantidad %}border-warning border-2{% endif %}">
                         <div class="cart-item-image">
                             {% if item.imagen %}
                             <img src="{{ item.imagen }}" alt="{{ item.nombre }}" class="shadow-sm">
@@ -322,10 +364,21 @@
                                 <i class="fas fa-image me-2"></i>Sin imagen
                             </div>
                             {% endif %}
+                            
+                            {% if item.stock < 0 %}
+                            <span class="badge bg-danger position-absolute top-0 start-0 m-2 rounded-pill px-2">Stock negativo</span>
+                            {% elif item.stock < item.cantidad %}
+                            <span class="badge position-absolute top-0 start-0 m-2 rounded-pill px-2" style="background-color: #ffda6a; color: #664d03; font-weight: 600; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">Stock insuficiente</span>
+                            {% endif %}
                         </div>
                         <div class="cart-item-details">
                             <h3>{{ item.nombre }}</h3>
                             <p class="price"><i class="fas fa-tag me-1"></i>${{ item.precio|floatformat:0 }} CLP</p>
+                            {% if item.stock >= 0 %}
+                            <small class="text-muted">Stock disponible: {{ item.stock }}</small>
+                            {% else %}
+                            <small class="text-danger">Stock: {{ item.stock }} (Contacta con soporte)</small>
+                            {% endif %}
                             <div class="quantity-controls">
                                 <div class="input-group quantity-input-group" data-product-id="{{ item.id }}" data-price="{{ item.precio }}">
                                     <button type="button" class="btn btn-outline-secondary decrease-qty" title="Disminuir cantidad">
@@ -501,6 +554,10 @@
                 const price = parseFloat(inputGroup.dataset.price);
                 const subtotal = price * quantity;
                 
+                // Actualizar la cantidad en el input (por si el servidor devolvió un valor diferente)
+                const inputEl = inputGroup.querySelector('.qty-input');
+                inputEl.value = quantity;
+                
                 // Encontrar y actualizar el elemento de subtotal
                 const cartItem = inputGroup.closest('.cart-item');
                 const subtotalEl = cartItem.querySelector('.cart-item-subtotal p');
@@ -511,6 +568,9 @@
                 
                 // Mostrar feedback visual de éxito
                 showUpdateFeedback(inputGroup, 'success');
+                
+                // Log para confirmar la actualización
+                console.log(`Producto ${productId} actualizado a ${quantity} unidades`);
             })
             .catch(error => {
                 console.error('Error:', error);
@@ -702,27 +762,94 @@
                     });
                 },
                 onApprove: function (data, actions) {
+                    // Verificar primero si hay productos con problemas de stock
+                    const productosProblematicos = {% if productos_problematicos %}true{% else %}false{% endif %};
+                    
+                    if (productosProblematicos) {
+                        const errorDiv = document.createElement('div');
+                        errorDiv.className = 'alert alert-danger mt-3';
+                        errorDiv.innerHTML = `
+                            <i class="fas fa-exclamation-circle me-2"></i>
+                            <strong>Error:</strong> No se puede procesar el pago porque hay productos con problemas de stock.
+                            <hr>
+                            <p class="mb-0">Por favor, revisa las advertencias de stock y ajusta tu carrito antes de continuar.</p>
+                            <div class="mt-3">
+                                <button class="btn btn-outline-secondary btn-sm" onclick="location.reload()">Recargar página</button>
+                            </div>
+                        `;
+                        document.querySelector('.paypal-block').appendChild(errorDiv);
+                        return Promise.reject(new Error('Stock issues detected'));
+                    }
+                    
                     return actions.order.capture().then(function (details) {
+                        // Mostrar mensaje de procesando
+                        const processingDiv = document.createElement('div');
+                        processingDiv.className = 'alert alert-info mt-3';
+                        processingDiv.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Procesando su pago...';
+                        document.querySelector('.paypal-block').appendChild(processingDiv);
+                        
                         // Construir el carrito para el backend
+                        // Obtener los datos actualizados del carrito directamente desde la página
                         const cartItems = [];
                         
-                        {% if carrito %}
-                            {% for item in carrito %}
-                                cartItems.push({
-                                    id: "{{ item.id }}",
-                                    nombre: "{{ item.nombre|escapejs }}",
-                                    price: {{ item.precio|floatformat:2 }},
-                                    quantity: {{ item.cantidad }},
-                                    img: "{{ item.imagen|default:'' }}"
-                                });
-                            {% endfor %}
-                        {% endif %}
+                        // Recorrer los elementos actuales del carrito en la página
+                        document.querySelectorAll('.cart-item').forEach(item => {
+                            const productId = item.querySelector('.quantity-input-group').dataset.productId;
+                            const productName = item.querySelector('.cart-item-details h3').textContent;
+                            const price = parseFloat(item.querySelector('.quantity-input-group').dataset.price);
+                            const quantity = parseInt(item.querySelector('.qty-input').value);
+                            const imgElement = item.querySelector('.cart-item-image img');
+                            const imgSrc = imgElement ? imgElement.src : '';
+                            
+                            // Añadir al array con la cantidad correcta
+                            cartItems.push({
+                                id: productId,
+                                nombre: productName,
+                                price: price,
+                                quantity: quantity,
+                                img: imgSrc
+                            });
+                            
+                            // Log para depurar
+                            console.log(`Añadiendo producto: ${productName} (ID: ${productId}) - Cantidad: ${quantity}`);
+                        });
                         
                         console.log('Datos del carrito a enviar:', JSON.stringify(cartItems, null, 2));
                         console.log('OrderID:', data.orderID);
                         console.log('PayerID:', details.payer.payer_id);
                         
-                        fetch('/ejecutar_pago/', {
+                        // Verificar que las cantidades son correctas
+                        let hasInvalidQuantity = false;
+                        cartItems.forEach(item => {
+                            if (!item.quantity || item.quantity < 1) {
+                                console.error(`Producto ${item.id} (${item.nombre}) tiene cantidad inválida: ${item.quantity}`);
+                                hasInvalidQuantity = true;
+                            }
+                        });
+                        
+                        // Mostrar resumen antes de enviar
+                        console.log("Resumen de compra antes de procesar:");
+                        cartItems.forEach(item => {
+                            console.log(`- ${item.nombre}: ${item.quantity} unidades a $${item.price} c/u = $${item.price * item.quantity}`);
+                        });
+                        
+                        // Asegurarnos de que cada item del carrito tenga los datos necesarios
+                        if (!cartItems.length || hasInvalidQuantity) {
+                            // Si no hay ítems o hay cantidades inválidas, mostrar error
+                            const errorDiv = document.createElement('div');
+                            errorDiv.className = 'alert alert-danger mt-3';
+                            errorDiv.innerHTML = `
+                                <i class="fas fa-exclamation-circle me-2"></i>
+                                <strong>Error:</strong> ${hasInvalidQuantity ? 'Se detectaron cantidades inválidas en el carrito.' : 'No hay productos en el carrito para procesar.'}
+                                <hr>
+                                <button class="btn btn-outline-secondary btn-sm" onclick="location.reload()">Recargar página</button>
+                            `;
+                            document.querySelector('.paypal-block').appendChild(errorDiv);
+                            if (processingDiv) processingDiv.remove();
+                            return;
+                        }
+                        
+                        fetch('/ejecutar_pago_ajax/', {
                             method: 'POST',
                             headers: {
                                 'Content-Type': 'application/json',
@@ -734,26 +861,118 @@
                                 payer_id: details.payer.payer_id
                             })
                         })
-                        .then(response => response.json())
+                        .then(response => {
+                            console.log("Respuesta recibida:", response.status);
+                            if (!response.ok) {
+                                return response.json().then(errorData => {
+                                    throw new Error(JSON.stringify(errorData));
+                                });
+                            }
+                            return response.json();
+                        })
                         .then(data => {
+                            console.log("Datos recibidos:", data);
+                            // Remover el mensaje de procesando
+                            if (processingDiv) processingDiv.remove();
+                            
+                            // Registrar los datos del carrito procesado
+                            console.log("Carrito procesado correctamente:", cartItems);
+                            
                             if (data.success) {
                                 // Mostrar mensaje de éxito
+                                const cartContainer = document.querySelector('.cart-container');
                                 const successDiv = document.createElement('div');
-                                successDiv.className = 'alert alert-success mt-3';
-                                successDiv.innerHTML = '<i class="fas fa-check-circle me-2"></i>¡Pago procesado con éxito! Redirigiendo...';
-                                document.querySelector('.paypal-block').appendChild(successDiv);
+                                successDiv.className = 'alert alert-success mt-3 p-4 text-center';
+                                successDiv.style.fontSize = '1.2rem';
+                                successDiv.innerHTML = `
+                                    <i class="fas fa-check-circle fa-2x mb-3 text-success"></i>
+                                    <h4 class="alert-heading mb-3">¡Pago procesado con éxito!</h4>
+                                    <p>Su pedido #${data.pedido_id} ha sido registrado correctamente.</p>
+                                    <p class="mb-0">Redirigiendo a Mis Pedidos...</p>
+                                    <div class="progress mt-3">
+                                        <div class="progress-bar progress-bar-striped progress-bar-animated bg-success" role="progressbar" style="width: 0%" id="redirect-progress"></div>
+                                    </div>
+                                `;
+                                
+                                // Reemplazar el contenido del carrito con el mensaje de éxito
+                                cartContainer.innerHTML = '';
+                                cartContainer.appendChild(successDiv);
+                                
+                                // Remover el resumen del carrito ya que no es necesario
+                                const cartSummary = document.querySelector('.cart-summary');
+                                if (cartSummary) cartSummary.remove();
+                                
+                                // Animación de progreso
+                                const progressBar = document.getElementById('redirect-progress');
+                                let progress = 0;
+                                const progressInterval = setInterval(() => {
+                                    progress += 2;
+                                    progressBar.style.width = progress + '%';
+                                    if (progress >= 100) clearInterval(progressInterval);
+                                }, 40); // 2 segundos en total
                                 
                                 // Redirigir a la página de confirmación del pedido
                                 setTimeout(() => {
-                                    window.location.href = '/confirmacion_pedido/' + data.pedido_id + '/';
+                                    // Usar la URL de redirección proporcionada por el servidor si existe
+                                    const redirectUrl = data.redirect_url || '/mis_pedidos/';
+                                    window.location.href = redirectUrl;
                                 }, 2000);
                             } else {
-                                // Mostrar mensaje de error
+                                // Mostrar mensaje de error con detalles del servidor
                                 const errorDiv = document.createElement('div');
                                 errorDiv.className = 'alert alert-danger mt-3';
-                                errorDiv.innerHTML = '<i class="fas fa-exclamation-circle me-2"></i>Error: ' + data.error;
+                                errorDiv.innerHTML = `
+                                    <i class="fas fa-exclamation-circle me-2"></i>
+                                    <strong>Error:</strong> ${data.error || 'Error desconocido'}
+                                    <hr>
+                                    <p class="mb-0">Por favor verifique su sesión e intente nuevamente.</p>
+                                    <div class="mt-2">
+                                        <button class="btn btn-outline-secondary btn-sm me-2" onclick="location.reload()">Recargar página</button>
+                                        <a href="{% url 'index' %}" class="btn btn-outline-primary btn-sm">Volver a productos</a>
+                                    </div>
+                                `;
                                 document.querySelector('.paypal-block').appendChild(errorDiv);
                             }
+                        })
+                        .catch(error => {
+                            console.error('Error al procesar el pago:', error);
+                            // Remover el mensaje de procesando si existe
+                            if (processingDiv) processingDiv.remove();
+                            
+                            // Intentar obtener una respuesta detallada si es posible
+                            let errorMessage = 'Error al procesar el pago. Por favor, inténtelo de nuevo más tarde.';
+                            
+                            try {
+                                // Intentar extraer el mensaje de error más detallado
+                                if (error.message) {
+                                    const errorData = JSON.parse(error.message);
+                                    if (errorData && errorData.error) {
+                                        errorMessage = errorData.error;
+                                    }
+                                }
+                            } catch (e) {
+                                console.log('Error al analizar el mensaje de error:', e);
+                            }
+                            
+                            // Mostrar mensaje de error
+                            const errorDiv = document.createElement('div');
+                            errorDiv.className = 'alert alert-danger mt-3';
+                            errorDiv.innerHTML = `
+                                <i class="fas fa-exclamation-circle me-2"></i>
+                                <strong>Error de pago:</strong> ${errorMessage}
+                                <hr>
+                                <p class="mb-0">Si el problema persiste, por favor contacte con soporte o intente con otro método de pago.</p>
+                                <div class="mt-2">
+                                    <button class="btn btn-outline-danger btn-sm me-2" onclick="location.reload()">Reintentar</button>
+                                    <button class="btn btn-outline-primary btn-sm" onclick="window.location.href='{% url 'index' %}'">Volver a la tienda</button>
+                                </div>
+                            `;
+                            document.querySelector('.paypal-block').appendChild(errorDiv);
+                            
+                            // Mostrar información de depuración en la consola
+                            console.log('Datos del carrito:', cartItems);
+                            console.log('OrderID:', data.orderID);
+                            console.log('PayerID:', details.payer.payer_id);
                         });
                     });
                 }

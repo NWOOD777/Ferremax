@@ -20,15 +20,20 @@
                             <div class="mb-3">
                                 <label for="{{ field.id_for_label }}" class="form-label">
                                     {{ field.label }}{% if field.name == "precio_unitario" %} (CLP){% endif %}
+                                    {% if field.name == "imagen" %}<span class="text-danger">*</span>{% endif %}
                                 </label>
                                 {% if field.name == "precio_unitario" %}
                                 <div class="input-group">
                                     <span class="input-group-text">CLP $</span>
                                     {{ field }}
                                 </div>
+                                {% elif field.name == "imagen" %}
+                                <div class="mb-0">{{ field }}</div>
+                                <small class="text-muted">La imagen es obligatoria. Formatos permitidos: JPG, PNG, GIF.</small>
                                 {% else %}
                                 {{ field }}
                                 {% endif %}
+                                
                                 {% if field.errors %}
                                 <div class="text-danger">{{ field.errors }}</div>
                                 {% endif %}
