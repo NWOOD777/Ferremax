@@ -42,6 +42,10 @@ Esto creará todas las tablas y cargará automáticamente:
 - Cargos de empleados
 - Productos iniciales con imágenes de ejemplo
 - Empleados de demostración
+- Cliente por defecto (si no existen clientes)
+- Producto por defecto (si no existen productos)
+
+> **Nota sobre datos automáticos**: Las migraciones `0012_crear_producto_por_defecto` y `0013_crear_cliente_por_defecto` verifican si ya existen datos antes de crear los datos por defecto. Esto garantiza que no se dupliquen registros y que siempre haya al menos un cliente y un producto en el sistema.
 
 ### 5. Crea el superusuario predefinido para acceso administrativo
 
@@ -162,17 +166,30 @@ Documentación interactiva: [http://127.0.0.1:8001/docs](http://127.0.0.1:8001/d
 
 ---
 
-## 🔧 Usuarios de prueba
+## 🔧 Datos de prueba preconfigurados
 
-El sistema incluye los siguientes usuarios para pruebas:
+El sistema incluye los siguientes datos para pruebas:
 
 ### Administrador
 - Usuario: admin
 - Contraseña: ferremax2025
 
-### Cliente
+### Clientes
 - Usuario: cliente1
 - Contraseña: ferremax123
+
+### Cliente por defecto (creado automáticamente)
+- RUT: 11111111-1
+- Correo: cliente.demo@ferremax.com
+- Contraseña: clientedemo123
+- Nombre: Cliente Demo
+
+### Producto por defecto (creado automáticamente)
+- Nombre: Martillo profesional
+- Descripción: Martillo de carpintero con mango ergonómico y cabeza de acero reforzado
+- Marca: Ferremax Tools
+- Precio: $12,990
+- Stock: 50 unidades
 
 ---
 
