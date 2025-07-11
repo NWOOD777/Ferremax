@@ -7,6 +7,9 @@ Superusuario
     email = 'admin@ferremax.cl'
     password = 'ferremax2025'
 
+Cliente precreado:
+    email: cliente.prueba@ferremax.com
+    password: clienteprueba123
 
 Empleados precreados
 Bodeguero
