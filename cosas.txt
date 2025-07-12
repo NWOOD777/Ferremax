@@ -9,7 +9,7 @@ Superusuario
 
 Cliente precreado:
     email: cliente.prueba@ferremax.com
-    password: clienteprueba123
+    password: 
 
 Empleados precreados
 Bodeguero

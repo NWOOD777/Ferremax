@@ -7,6 +7,7 @@ from django.conf import settings
 import json
 from decimal import Decimal, InvalidOperation
 from datetime import date
+from .forms import ProductoForm
 
 from .models import Cargo, Cliente, Empleado, Sucursal, Producto, Pedido, DetalleProducto, MetodoPago, EstadoPago, Pago
 from .paypal_utils import crear_pago, ejecutar_pago
@@ -80,14 +81,27 @@ def pedidos(request):
     if tipo_usuario == 'cliente':
         try:
             nombre_cliente = request.session.get('nombre_usuario')
-            cliente = Cliente.objects.get(nombre_cliente=nombre_cliente)
+            correo_cliente = request.session.get('correo')
             
+            # Primero buscar por correo si está disponible (más confiable)
+            if correo_cliente:
+                cliente = Cliente.objects.filter(correo=correo_cliente).first()
+                if not cliente:
+                    # Si no encuentra por correo, buscar por nombre
+                    cliente = Cliente.objects.filter(nombre_cliente=nombre_cliente).first()
+            else:
+                # Si no hay correo en sesión, buscar por nombre
+                cliente = Cliente.objects.filter(nombre_cliente=nombre_cliente).first()
+                
+            if not cliente:
+                return redirect('inicio')  
+                
             pedidos_cliente = Pedido.objects.filter(cliente=cliente).order_by('-fecha_pedido')
             
             return render(request, 'Home/pedidos.html', {
                 'pedidos': pedidos_cliente
             })
-        except Cliente.DoesNotExist:
+        except Exception as e:
             return redirect('index')
     else:
         if tipo_usuario == 'Vendedor' or tipo_usuario == 'Administrador':
@@ -504,9 +518,24 @@ def checkout(request):
     
     # Get client
     nombre_usuario = request.session.get('nombre_usuario')
+    correo_usuario = request.session.get('correo')
+    
     try:
-        cliente = Cliente.objects.get(nombre_cliente=nombre_usuario)
-    except Cliente.DoesNotExist:
+        # Primero intentar obtener el cliente por correo (que es único)
+        if correo_usuario:
+            cliente = Cliente.objects.filter(correo=correo_usuario).first()
+            if not cliente:
+                # Si no se encuentra por correo, buscar por nombre pero usando filter().first()
+                cliente = Cliente.objects.filter(nombre_cliente=nombre_usuario).first()
+        else:
+            # Si no hay correo en la sesión, buscar por nombre usando filter().first()
+            cliente = Cliente.objects.filter(nombre_cliente=nombre_usuario).first()
+            
+        if not cliente:
+            messages.error(request, "No se pudo identificar al cliente. Por favor, intente iniciar sesión nuevamente.")
+            return redirect('inicio')
+    except Exception as e:
+        messages.error(request, f"Error al identificar al cliente: {str(e)}")
         return redirect('inicio')
     
     # Create PayPal payment
@@ -547,8 +576,20 @@ def ejecutar_pago_view(request):
     total = request.session.get('order_total', 0)
     
     try:
-        # Get client
-        cliente = Cliente.objects.get(nombre_cliente=nombre_usuario)
+        # Primero intentar obtener el cliente por correo (que es único)
+        correo_usuario = request.session.get('correo')
+        if correo_usuario:
+            cliente = Cliente.objects.filter(correo=correo_usuario).first()
+            if not cliente:
+                # Si no se encuentra por correo, buscar por nombre pero usando filter().first()
+                cliente = Cliente.objects.filter(nombre_cliente=nombre_usuario).first()
+        else:
+            # Si no hay correo en la sesión, buscar por nombre usando filter().first()
+            cliente = Cliente.objects.filter(nombre_cliente=nombre_usuario).first()
+            
+        if not cliente:
+            messages.error(request, "No se pudo identificar al cliente. Por favor, intente iniciar sesión nuevamente.")
+            return redirect('carrito')
         
         # Create order
         pedido = Pedido.objects.create(
@@ -743,14 +784,26 @@ def modificar_producto(request, id_producto):
         return redirect('index')
     
     producto = get_object_or_404(Producto, id_producto=id_producto)
+    mensaje = None
+    actualizado = False
     
     if request.method == 'POST':
-        # Process form
-        pass
+        # Procesar el formulario con los datos enviados
+        form = ProductoForm(request.POST, request.FILES, instance=producto)
+        if form.is_valid():
+            form.save()
+            mensaje = "El producto ha sido actualizado correctamente"
+            actualizado = True
+    else:
+        # Crear el formulario con la instancia del producto existente
+        form = ProductoForm(instance=producto)
     
     return render(request, 'Home/modificar_producto.html', {
         'nombre_usuario': request.session.get('nombre_usuario'),
-        'producto': producto
+        'producto': producto,
+        'form': form,
+        'mensaje': mensaje,
+        'actualizado': actualizado
     })
 
 def eliminar_producto(request, id_producto):
@@ -888,9 +941,23 @@ def ejecutar_pago_ajax(request):
         nombre_usuario = request.session.get('nombre_usuario')
         
         try:
-            # Obtener el cliente
-            cliente = Cliente.objects.get(nombre_cliente=nombre_usuario)
-            
+            # Primero intentar obtener el cliente por correo (que es único)
+            correo_usuario = request.session.get('correo')
+            if correo_usuario:
+                cliente = Cliente.objects.filter(correo=correo_usuario).first()
+                if not cliente:
+                    # Si no se encuentra por correo, buscar por nombre pero usando filter().first()
+                    cliente = Cliente.objects.filter(nombre_cliente=nombre_usuario).first()
+            else:
+                # Si no hay correo en la sesión, buscar por nombre usando filter().first()
+                cliente = Cliente.objects.filter(nombre_cliente=nombre_usuario).first()
+                
+            if not cliente:
+                return JsonResponse({
+                    'success': False,
+                    'error': 'No se pudo identificar al cliente'
+                }, status=404)
+                
             # Crear el pedido
             # Asegurar que el total sea un Decimal con dos decimales
             total_decimal = Decimal(str(total)).quantize(Decimal('0.01'))
