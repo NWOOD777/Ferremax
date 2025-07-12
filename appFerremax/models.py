@@ -105,9 +105,11 @@ class Producto(models.Model):
         from django.core.exceptions import ValidationError
         if not self.nombre_producto.strip():
             raise ValidationError('El nombre del producto no puede estar vacío.')
-        if self.stock_total < 0:
+        if self.stock_total is None or self.stock_total < 0:
             raise ValidationError('El stock no puede ser negativo.')
-        if self.precio_unitario <= 0:
+        if self.precio_unitario is None:
+            raise ValidationError('El precio no puede estar vacío.')
+        elif self.precio_unitario <= 0:
             raise ValidationError('El precio debe ser mayor a cero.')
 
 class Pedido(models.Model):
