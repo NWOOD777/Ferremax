@@ -47,6 +47,7 @@ def inicio(request):
                     request.session['nombre_usuario'] = cliente.nombre_cliente
                     request.session['tipo_usuario'] = 'cliente'
                     request.session['id_usuario'] = cliente.rut_cliente  # Usando rut_cliente en lugar de id_cliente
+                    request.session['correo'] = cliente.correo  # Guardar el correo para identificación única
                     return redirect('index')
                 else:
                     errores.append('Contraseña incorrecta')
@@ -59,6 +60,7 @@ def inicio(request):
                         request.session['nombre_usuario'] = empleado.nombre_empleado
                         request.session['tipo_usuario'] = empleado.cargo.nombre_cargo
                         request.session['id_usuario'] = empleado.id_empleado
+                        request.session['correo'] = empleado.correo  # Guardar el correo para identificación única
                         return redirect('index')
                     else:
                         errores.append('Contraseña incorrecta')
@@ -267,6 +269,7 @@ def registro(request):
             request.session['nombre_usuario'] = nombre_cliente
             request.session['tipo_usuario'] = 'cliente'
             request.session['id_usuario'] = nuevo_cliente.rut_cliente  # Usando rut_cliente en lugar de id_cliente
+            request.session['correo'] = correo  # Guardar el correo para identificación única
             
             # Redirigir a la página principal
             return redirect('index')
@@ -773,12 +776,32 @@ def mis_pedidos(request):
         return redirect('inicio')
     
     nombre_usuario = request.session.get('nombre_usuario')
+    correo_usuario = request.session.get('correo')
     
-    try:
-        cliente = Cliente.objects.get(nombre_cliente=nombre_usuario)
-        pedidos = Pedido.objects.filter(cliente=cliente).order_by('-fecha_pedido')
-    except Cliente.DoesNotExist:
-        pedidos = []
+    # Check if we have correo in session, which is more unique
+    if correo_usuario:
+        try:
+            # Use correo if available
+            cliente = Cliente.objects.filter(correo=correo_usuario).first()
+            if cliente:
+                pedidos = Pedido.objects.filter(cliente=cliente).order_by('-fecha_pedido')
+            else:
+                pedidos = []
+        except Exception as e:
+            print(f"Error al buscar cliente por correo: {e}")
+            pedidos = []
+    else:
+        # Fallback to using nombre_cliente but get first match instead of get()
+        try:
+            clientes = Cliente.objects.filter(nombre_cliente=nombre_usuario)
+            if clientes.exists():
+                cliente = clientes.first()  # Just use the first matching client
+                pedidos = Pedido.objects.filter(cliente=cliente).order_by('-fecha_pedido')
+            else:
+                pedidos = []
+        except Exception as e:
+            print(f"Error al buscar cliente por nombre: {e}")
+            pedidos = []
     
     return render(request, 'Home/mis_pedidos.html', {
         'nombre_usuario': nombre_usuario,
