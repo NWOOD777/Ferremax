@@ -1,9 +1,10 @@
 from django.contrib import messages
 from django.shortcuts import render, redirect, get_object_or_404
-from django.http import HttpResponse, JsonResponse
+from django.http import HttpResponse, JsonResponse, Http404
 from django.utils import timezone
 from django.urls import reverse
 from django.conf import settings
+from django.views.defaults import page_not_found
 import json
 from decimal import Decimal, InvalidOperation
 from datetime import date
@@ -878,6 +879,37 @@ def productos(request):
 
 def productosapi(request):
     return render(request, 'Home/productos_api.html')
+    
+def vista_404_test(request):
+    """
+    Vista para probar la página 404 en modo de desarrollo
+    """
+    # Mostrar la página 404 personalizada
+    return page_not_found(request, Exception("Esta es una prueba de la página 404"))
+
+def handler404(request, exception=None):
+    """
+    Manejador personalizado para errores 404
+    """
+    return render(request, '404.html', {'path': request.path}, status=404)
+
+def handler500(request):
+    """
+    Manejador personalizado para errores 500
+    """
+    return render(request, '404.html', {'path': request.path, 'error_type': '500 - Error Interno del Servidor'}, status=500)
+
+def handler403(request, exception=None):
+    """
+    Manejador personalizado para errores 403
+    """
+    return render(request, '404.html', {'path': request.path, 'error_type': '403 - Acceso Prohibido'}, status=403)
+
+def handler400(request, exception=None):
+    """
+    Manejador personalizado para errores 400
+    """
+    return render(request, '404.html', {'path': request.path, 'error_type': '400 - Solicitud Incorrecta'}, status=400)
 
 import json
 from django.views.decorators.csrf import csrf_exempt

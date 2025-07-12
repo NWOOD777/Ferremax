@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Página no encontrada - Ferremax</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <style>
+        body {
+            background-color: #f8f9fa;
+            padding-top: 3rem;
+        }
+        .error-template {
+            padding: 40px 15px;
+            text-align: center;
+        }
+        .error-actions {
+            margin-top: 15px;
+            margin-bottom: 15px;
+        }
+        .error-actions .btn {
+            margin-right: 10px;
+        }
+        .error-icon {
+            font-size: 100px;
+            color: #ffc107; /* Color amarillo (warning) para combinar con la estética Ferremax */
+        }
+        .ferremax-logo {
+            margin-bottom: 2rem;
+        }
+        .card {
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+        .card-header {
+            border-radius: 15px 15px 0 0 !important;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-md-8">
+                <div class="card shadow">
+                    <div class="card-header bg-warning text-dark text-center">
+                        <h1 class="mb-0">FERREMAX</h1>
+                    </div>
+                    <div class="card-body">
+                        <div class="error-template">
+                            <i class="bi bi-exclamation-triangle-fill error-icon"></i>
+                            <h2>{{ error_type|default:"404 - Página No Encontrada" }}</h2>
+                            <div class="my-4">
+                                <h3>¡Ups! Parece que te has perdido.</h3>
+                                <p class="text-muted">
+                                    Lo sentimos, pero la página que estás buscando no existe, ha sido eliminada 
+                                    o está temporalmente no disponible.
+                                </p>
+                                {% if path %}
+                                <p class="text-muted">
+                                    <small>Dirección: {{ path }}</small>
+                                </p>
+                                {% endif %}
+                            </div>
+                            <div class="error-actions">
+                                <a href="javascript:history.back()" class="btn btn-secondary btn-lg">
+                                    <i class="bi bi-arrow-left"></i> Volver Atrás
+                                </a>
+                                <a href="/" class="btn btn-warning btn-lg">
+                                    <i class="bi bi-house-fill"></i> Ir a Inicio
+                                </a>
+                            </div>
+                            <div class="mt-4">
+                                <p class="text-muted">
+                                    <small>Si crees que esto es un error, contacta a soporte técnico.</small>
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="text-center mt-4 text-muted">
+                    <small>&copy; 2025 Ferremax. Todos los derechos reservados.</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

@@ -25,5 +25,12 @@ urlpatterns = [
     path('api/', include('appFerremax.api_urls')),  
 ]
 
-if settings.DEBUG:
-    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+# Serve static and media files in both development and production
+urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
+urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+    
+# Configure custom error handlers
+handler404 = 'appFerremax.views.handler404'
+handler500 = 'appFerremax.views.handler500'
+handler403 = 'appFerremax.views.handler403'
+handler400 = 'appFerremax.views.handler400'
