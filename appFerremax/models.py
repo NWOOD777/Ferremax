@@ -91,7 +91,7 @@ class Producto(models.Model):
     nombre_producto = models.CharField(max_length=100)
     descripcion = models.CharField(max_length=200)
     marca = models.CharField(max_length=50)
-    precio_unitario = models.DecimalField(max_digits=10, decimal_places=2)
+    precio_unitario = models.IntegerField(verbose_name="Precio Unitario")
     stock_total = models.IntegerField()
     sucursal = models.ForeignKey(Sucursal, on_delete=models.CASCADE)
     imagen = models.ImageField(upload_to='productos/', null=False, blank=False)

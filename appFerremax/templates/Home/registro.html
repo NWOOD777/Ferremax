@@ -1,35 +1,147 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
+    <meta charset="UTF-8" />
     <title>Registro de Cliente</title>
     {% load static %}
-    <link rel="stylesheet" href="{% static 'CSS/registro.css' %}">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'CSS/registro.css' %}" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet" />
+
     <style>
+        body {
+            background: #f0f4f8;
+            font-family: 'Roboto', sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        .registro-container {
+            background: white;
+            max-width: 420px;
+            width: 90%;
+            padding: 30px 35px;
+            border-radius: 10px;
+            box-shadow: 0 6px 20px rgba(30, 64, 175, 0.15);
+            box-sizing: border-box;
+        }
+        .logo {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 25px;
+        }
+        /* Logo azul más vivo */
+        .logo svg circle {
+            fill: #1e40af;
+        }
+        .logo svg path {
+            fill: #1e40af;
+        }
+        h2 {
+            text-align: center;
+            margin-bottom: 28px;
+            color: #1e40af;
+            font-weight: 700;
+            font-size: 1.8rem;
+        }
+        .input-group {
+            position: relative;
+            margin-bottom: 20px;
+        }
+        .input-group .icon {
+            position: absolute;
+            top: 50%;
+            left: 12px;
+            transform: translateY(-50%);
+            pointer-events: none;
+            stroke: #1e40af;
+            fill: #a5b4fc;
+        }
+        input[type="text"],
+        input[type="email"],
+        input[type="password"],
+        input[type="date"],
+        select {
+            width: 100%;
+            padding: 11px 15px 11px 44px;
+            font-size: 1rem;
+            border: 1.8px solid #a5b4fc;
+            border-radius: 6px;
+            outline: none;
+            transition: border-color 0.3s ease;
+            color: #1e293b;
+            box-sizing: border-box;
+        }
+        input[type="text"]:focus,
+        input[type="email"]:focus,
+        input[type="password"]:focus,
+        input[type="date"]:focus,
+        select:focus {
+            border-color: #3b82f6;
+            box-shadow: 0 0 6px rgba(59, 130, 246, 0.5);
+        }
         .error-text {
-            color: #d32f2f;
-            font-size: 0.9em;
-            margin-top: 4px;
+            color: #ef4444;
+            font-size: 0.85rem;
+            margin-top: 6px;
+            padding-left: 44px;
+        }
+        .errores {
+            margin-bottom: 22px;
+            color: #ef4444;
+            font-weight: 600;
+            padding-left: 18px;
+        }
+        .registro-btn {
+            width: 100%;
+            padding: 14px 0;
+            background: linear-gradient(90deg, #3b82f6, #2563eb);
+            border: none;
+            border-radius: 8px;
+            color: white;
+            font-weight: 700;
+            font-size: 1.15rem;
+            cursor: pointer;
+            transition: background 0.3s ease;
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.5);
+        }
+        .registro-btn:hover {
+            background: linear-gradient(90deg, #2563eb, #1e40af);
+        }
+        .register-link {
+            margin-top: 22px;
+            text-align: center;
+            font-size: 0.95rem;
+            color: #334155;
+        }
+        .register-link a {
+            color: #3b82f6;
+            font-weight: 700;
+            text-decoration: none;
+        }
+        .register-link a:hover {
+            text-decoration: underline;
         }
     </style>
 </head>
 <body>
     <div class="registro-container">
         <div class="logo">
-            <svg width="70" height="70" viewBox="0 0 24 24" fill="none" class="user-logo-icon">
-                <circle cx="12" cy="8" r="5" fill="#1976d2"/>
-                <path d="M12 14c-4 0-7 2-7 4.5V21h14v-2.5C19 16 16 14 12 14z" fill="#1976d2"/>
+            <svg width="90" height="90" viewBox="0 0 24 24" fill="none" class="user-logo-icon" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="12" cy="8" r="5" />
+                <path d="M12 14c-4 0-7 2-7 4.5V21h14v-2.5C19 16 16 14 12 14z" />
             </svg>
         </div>
+
         <h2>Registro de Cliente</h2>
 
-        {# Errores generales, todos listados arriba #}
         {% if errores %}
-            <div class="errores" style="margin-bottom: 15px;">
-                <ul style="margin:0;padding-left:18px;">
+            <div class="errores">
+                <ul style="margin:0; padding-left:18px;">
                     {% for campo, lista_errores in errores.items %}
                         {% for error in lista_errores %}
                             <li>{{ error }}</li>
@@ -41,8 +153,13 @@
 
         <form method="post" autocomplete="off">
             {% csrf_token %}
-            
+
             <div class="input-group">
+                <span class="icon">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <rect x="6" y="10" width="12" height="8" rx="2" stroke-width="1.5"/>
+                    </svg>
+                </span>
                 <input type="text" name="rut_cliente" placeholder="RUT (12345678-9)" maxlength="12" required value="{{ valores.rut_cliente|default:'' }}">
                 {% if errores.rut_cliente %}
                     <div class="error-text">{{ errores.rut_cliente.0 }}</div>
@@ -50,6 +167,11 @@
             </div>
 
             <div class="input-group">
+                <span class="icon">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M5 20h14v-2H5v2zM7 4h10v10H7V4z" stroke-width="1.5"/>
+                    </svg>
+                </span>
                 <input type="date" name="fecha_registro" required value="{{ valores.fecha_registro|default:'' }}">
                 {% if errores.fecha_registro %}
                     <div class="error-text">{{ errores.fecha_registro.0 }}</div>
@@ -57,6 +179,12 @@
             </div>
 
             <div class="input-group">
+                <span class="icon">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <circle cx="12" cy="12" r="10" stroke-width="1.5"/>
+                        <path d="M8 12l4 4 4-4" stroke-width="1.5" fill="none"/>
+                    </svg>
+                </span>
                 <select name="recibe_ofertas" required>
                     <option value="">¿Recibe ofertas?</option>
                     <option value="S" {% if valores.recibe_ofertas == 'S' %}selected{% endif %}>Sí</option>
@@ -68,6 +196,11 @@
             </div>
 
             <div class="input-group">
+                <span class="icon">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <circle cx="12" cy="8" r="4" stroke-width="1.5"/>
+                    </svg>
+                </span>
                 <input type="text" name="nombre_cliente" placeholder="Nombre" maxlength="20" required value="{{ valores.nombre_cliente|default:'' }}">
                 {% if errores.nombre_cliente %}
                     <div class="error-text">{{ errores.nombre_cliente.0 }}</div>
@@ -75,6 +208,11 @@
             </div>
 
             <div class="input-group">
+                <span class="icon">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <circle cx="12" cy="8" r="4" stroke-width="1.5"/>
+                    </svg>
+                </span>
                 <input type="text" name="apellido_cliente" placeholder="Apellido" maxlength="20" required value="{{ valores.apellido_cliente|default:'' }}">
                 {% if errores.apellido_cliente %}
                     <div class="error-text">{{ errores.apellido_cliente.0 }}</div>
@@ -82,6 +220,11 @@
             </div>
 
             <div class="input-group">
+                <span class="icon">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <rect x="3" y="10" width="18" height="8" rx="2" stroke-width="1.5"/>
+                    </svg>
+                </span>
                 <input type="text" name="direccion" placeholder="Dirección" maxlength="50" required value="{{ valores.direccion|default:'' }}">
                 {% if errores.direccion %}
                     <div class="error-text">{{ errores.direccion.0 }}</div>
@@ -89,6 +232,12 @@
             </div>
 
             <div class="input-group">
+                <span class="icon">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M6 8h12v8H6z" stroke-width="1.5"/>
+                        <line x1="6" y1="8" x2="18" y2="16" stroke-width="1.5"/>
+                    </svg>
+                </span>
                 <input type="text" name="telefono_cliente" placeholder="Teléfono: 12345678" maxlength="8" required value="{{ valores.telefono_cliente|default:'' }}">
                 {% if errores.telefono_cliente %}
                     <div class="error-text">{{ errores.telefono_cliente.0 }}</div>
@@ -96,6 +245,12 @@
             </div>
 
             <div class="input-group">
+                <span class="icon">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <circle cx="12" cy="8" r="4" stroke-width="1.5"/>
+                        <ellipse cx="12" cy="17" rx="7" ry="5" stroke-width="1.5"/>
+                    </svg>
+                </span>
                 <input type="email" name="correo" placeholder="Correo electrónico" maxlength="100" required value="{{ valores.correo|default:'' }}">
                 {% if errores.correo %}
                     <div class="error-text">{{ errores.correo.0 }}</div>
@@ -103,6 +258,13 @@
             </div>
 
             <div class="input-group">
+                <span class="icon">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <rect x="6" y="10" width="12" height="8" rx="2" stroke-width="1.5"/>
+                        <rect x="10" y="14" width="4" height="4" rx="1" fill="#1e40af"/>
+                        <circle cx="12" cy="8" r="3" stroke-width="1.2"/>
+                    </svg>
+                </span>
                 <input type="password" name="contrasena" placeholder="Contraseña" minlength="8" maxlength="100" required>
                 {% if errores.contrasena %}
                     <div class="error-text">{{ errores.contrasena.0 }}</div>
