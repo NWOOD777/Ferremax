@@ -1,6 +1,8 @@
 from django.db import migrations
 
 def cargar_empleados(apps, schema_editor):
+    from django.contrib.auth.hashers import make_password  # Importar aquí para migración
+    
     Cargo = apps.get_model('appFerremax', 'Cargo')
     Sucursal = apps.get_model('appFerremax', 'Sucursal')
     Empleado = apps.get_model('appFerremax', 'Empleado')
@@ -27,7 +29,7 @@ def cargar_empleados(apps, schema_editor):
             nombre_empleado=e["nombre"],
             apellido_empleado=e["apellido"],
             correo=e["correo"],
-            contrasena=e["contrasena"],
+            contrasena=make_password(e["contrasena"]),  # <-- Aquí se hace el hash
             cargo=e["cargo"],
             sucursal=e["sucursal"]
         )
