@@ -155,7 +155,7 @@ EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
 EMAIL_HOST_USER = 'azizoazoa@gmail.com'
-EMAIL_HOST_PASSWORD = 'ymqd pcgr arak mlxk' 
+EMAIL_HOST_PASSWORD = 'cfbb xopf ietg sxfe' 
 DEFAULT_FROM_EMAIL = 'azizoazoa@gmail.com'
 
 
