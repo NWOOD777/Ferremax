@@ -26,8 +26,8 @@ def crear_cliente_por_defecto(apps, schema_editor):
             apellido_cliente="Demo",
             direccion=f"Av. Principal 123 {', ' + comuna.nombre_comuna if comuna else ''}",
             telefono_cliente="912345678",
-            correo="cliente.demo@ferremax.com",
-            contrasena="clientedemo123"
+            correo="di.alcaino@duocuc.cl",
+            contrasena="diego123"
         )
         
         print(f"Se ha creado un cliente por defecto con RUT: {cliente.rut_cliente}")

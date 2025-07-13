@@ -1,4 +1,4 @@
-from django.urls import path, include
+from django.urls import path
 from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib.auth import views as auth_views
@@ -23,10 +23,44 @@ urlpatterns = [
     path('ejecutar_pago_ajax/', views.ejecutar_pago_ajax, name='ejecutar_pago_ajax'),
     path('confirmacion_pedido/<int:id_pedido>/', views.confirmacion_pedido, name='confirmacion_pedido'),
     path('cambiar_estado_pedido/<int:id_pedido>/', views.cambiar_estado_pedido, name='cambiar_estado_pedido'),
-    path('recuperar_contrasena/', auth_views.PasswordResetView.as_view(template_name="Home/recuperar_contra/recuperar_contrasena.html"), name="recuperar_contrasena"),
-    path('reset_password_sent/', auth_views.PasswordResetDoneView.as_view(template_name="Home/recuperar_contra/contra_reset_sent.html"), name="password_reset_done"),
-    path('reset/<uidb64>/<token>/', auth_views.PasswordResetConfirmView.as_view(template_name="Home/recuperar_contra/contra_reset_form.html"), name="password_reset_confirm"),
-    path('reset_password_complete/', auth_views.PasswordResetCompleteView.as_view(template_name="Home/recuperar_contra/contra_reset_done.html"), name="password_reset_complete"),
+
+    # Recuperación de contraseña personalizada
+    path(
+        'recuperar-contrasena/',
+        auth_views.PasswordResetView.as_view(
+            template_name='home/recuperar_contra/recuperar_contrasena.html',
+            email_template_name='home/recuperar_contra/correo_recuperacion.html',
+            subject_template_name='home/recuperar_contra/asunto_recuperacion.txt',
+            success_url='/recuperar-contrasena/enviado/'
+        ),
+        name='password_reset'  # nombre estándar para recuperación
+    ),
+
+    path(
+        'recuperar-contrasena/enviado/',
+        auth_views.PasswordResetDoneView.as_view(
+            template_name='home/recuperar_contra/contra_reset_sent.html'
+        ),
+        name='password_reset_done'
+    ),
+
+    path(
+        'recuperar-contrasena/confirmar/<uidb64>/<token>/',
+        auth_views.PasswordResetConfirmView.as_view(
+            template_name='home/recuperar_contra/contra_reset_form.html',
+            success_url='/recuperar-contrasena/completado/'
+        ),
+        name='password_reset_confirm'
+    ),
+
+    path(
+        'recuperar-contrasena/completado/',
+        auth_views.PasswordResetCompleteView.as_view(
+            template_name='home/recuperar_contra/contra_reset_done.html'
+        ),
+        name='password_reset_complete'
+    ),
+
     path('check_stock/', views.check_stock, name='check_stock'),
     path('api_dolar/', views.api_dolar, name='api_dolar'),
     path('api-dolar-json/', views.api_dolar_json, name='api_dolar_json'),
@@ -39,6 +73,7 @@ urlpatterns = [
     path('productos/', views.productos, name='productos'),
     path('productosapi/', views.productosapi, name='productosapi'),
     path('test-404/', views.test_404, name='test_404'),
-] + api_urlpatterns
+]
 
+urlpatterns += api_urlpatterns
 urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

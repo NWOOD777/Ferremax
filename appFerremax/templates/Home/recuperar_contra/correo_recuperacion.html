@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Correo Enviado</title>
+    <title>Correo de recuperación</title>
     {% load static %}
     <link rel="stylesheet" href="{% static 'CSS/inicio.css' %}">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -19,13 +19,16 @@
         </div>
 
         <div class="content" style="text-align: center;">
-            <h2>Correo enviado</h2>
-            <p>Revisa tu bandeja de entrada. Te enviamos un enlace para restablecer tu contraseña.</p>
-            <p style="margin-top: 20px;">
-                <a href="{% url 'inicio' %}" style="display: inline-block; padding: 10px 20px; background-color: #333; color: white; text-decoration: none; border-radius: 5px;">
-                    Volver al login
+            <h2>Recuperación de contraseña</h2>
+            <p>Has solicitado restablecer tu contraseña.</p>
+            <p>Haz clic en el siguiente botón para definir una nueva contraseña:</p>
+            <p>
+                <a href="{{ protocol }}://{{ domain }}{% url 'password_reset_confirm' uidb64=uid token=token %}"
+                   style="display: inline-block; padding: 10px 20px; background-color: #333; color: white; text-decoration: none; border-radius: 5px;">
+                    Cambiar mi contraseña
                 </a>
             </p>
+            <p style="margin-top: 20px;">Si no lo solicitaste tú, simplemente ignora este correo.</p>
         </div>
     </div>
 </body>

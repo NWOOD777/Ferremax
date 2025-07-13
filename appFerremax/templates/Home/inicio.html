@@ -8,15 +8,57 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+
+    <style>
+    /* Estilos para la modal personalizada */
+    .modal {
+        position: fixed;
+        top: 0; left: 0;
+        width: 100%; height: 100%;
+        background-color: rgba(0,0,0,0.5);
+        display: none;
+        justify-content: center;
+        align-items: center;
+        z-index: 9999;
+    }
+    .modal-content {
+        background-color: white;
+        padding: 20px 30px;
+        border-radius: 8px;
+        text-align: center;
+        max-width: 300px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+        font-family: 'Roboto', sans-serif;
+    }
+    .modal-content p {
+        margin-bottom: 20px;
+        font-size: 1.1rem;
+    }
+    .modal-content button {
+        margin: 0 10px;
+        padding: 8px 16px;
+        cursor: pointer;
+        border: none;
+        border-radius: 4px;
+        font-weight: 700;
+    }
+    #btnAceptar {
+        background-color: #4CAF50;
+        color: white;
+    }
+    #btnCancelar {
+        background-color: #ccc;
+    }
+    </style>
 </head>
 <body>
     <div class="login-container">
         <div class="logo">
-    <svg width="90" height="90" viewBox="0 0 24 24" fill="none" class="user-logo-icon">
-        <circle cx="12" cy="8" r="5" fill="#111"/>
-        <path d="M12 14c-4 0-7 2-7 4.5V21h14v-2.5C19 16 16 14 12 14z" fill="#111"/>
-    </svg>
-</div>
+            <svg width="90" height="90" viewBox="0 0 24 24" fill="none" class="user-logo-icon">
+                <circle cx="12" cy="8" r="5" fill="#111"/>
+                <path d="M12 14c-4 0-7 2-7 4.5V21h14v-2.5C19 16 16 14 12 14z" fill="#111"/>
+            </svg>
+        </div>
         <form method="post" autocomplete="off">
             {% csrf_token %}
             {% if errores %}
@@ -29,7 +71,6 @@
                 </div>
             {% endif %}
 
-            
             <div class="input-group">
                 <span class="icon">
                     <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
@@ -51,7 +92,7 @@
             </div>
             <div class="options">
                 <label><input type="checkbox"> Recordarme</label>
-                <a href="#" onclick="return confirmarRecuperarContrasena();">¿Olvidó su contraseña?</a>
+                <a href="#" id="btnAbrirModal">¿Olvidó su contraseña?</a>
             </div>
             <button type="submit" class="login-btn">Iniciar sesión</button>
         </form>
@@ -59,13 +100,32 @@
             ¿No tiene cuenta? <a href="{% url 'registro' %}">Regístrese aquí</a>
         </div>
     </div>
+
+    <!-- Modal personalizada -->
+    <div id="modalRecuperar" class="modal">
+        <div class="modal-content">
+            <p>¿Desea restablecer su contraseña?</p>
+            <button id="btnAceptar">Aceptar</button>
+            <button id="btnCancelar">Cancelar</button>
+        </div>
+    </div>
+
     <script>
-function confirmarRecuperarContrasena() {
-    if (confirm('¿Desea restablecer su contraseña?')) {
-        window.location.href = "{% url 'recuperar_contrasena' %}";
-    }
-    return false;
-}
-</script>
+        // Abrir modal al hacer clic en el enlace
+        document.getElementById('btnAbrirModal').addEventListener('click', function(e) {
+            e.preventDefault();
+            document.getElementById('modalRecuperar').style.display = 'flex';
+        });
+
+        // Botón aceptar: redirige a la página de recuperación de contraseña
+        document.getElementById('btnAceptar').addEventListener('click', function() {
+            window.location.href = "{% url 'password_reset' %}";
+        });
+
+        // Botón cancelar: cierra la modal
+        document.getElementById('btnCancelar').addEventListener('click', function() {
+            document.getElementById('modalRecuperar').style.display = 'none';
+        });
+    </script>
 </body>
 </html>

@@ -146,15 +146,14 @@ os.makedirs(MEDIA_ROOT, exist_ok=True)
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # Configuración de PayPal
-PAYPAL_MODE = 'sandbox'  # Cambia a 'live' cuando estés en producción
+PAYPAL_MODE = 'sandbox' 
 PAYPAL_CLIENT_ID = 'AeFSoG-iJHJs-MCOwSrrVCKL7kMOo5WhE7IH9YaI8Znlcp5xZt5tfGvucUV7zGEDMl4n4bnLSgP3KXHx'
 PAYPAL_CLIENT_SECRET = 'ELAmJGuLqjKT3rSIy_-vq27xc3ssrEKl4oyVmniwO-n6O5cUoFmqatAu32qbIGCxJT1LTr7qPulj36MT'
-
 
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
-EMAIL_HOST_USER = 'plazadiego591@gmail.com'
-EMAIL_HOST_PASSWORD = 'umgp ozcn senk omej'  # Usa una contraseña de aplicación, no la normal
-DEFAULT_FROM_EMAIL = 'plazadiego591@gmail.com'
+EMAIL_HOST_USER = 'azizoazoa@gmail.com'
+EMAIL_HOST_PASSWORD = 'ymqd pcgr arak mlxk' 
+DEFAULT_FROM_EMAIL = 'azizoazoa@gmail.com'
