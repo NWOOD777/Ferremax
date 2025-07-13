@@ -18,6 +18,8 @@ from django.contrib import admin
 from django.urls import include, path
 from django.conf import settings
 from django.conf.urls.static import static
+from django.conf.urls import handler404
+from django.shortcuts import render
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -30,7 +32,15 @@ urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
 urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
     
 # Configure custom error handlers
-handler404 = 'appFerremax.views.handler404'
-handler500 = 'appFerremax.views.handler500'
-handler403 = 'appFerremax.views.handler403'
-handler400 = 'appFerremax.views.handler400'
+
+def handler404(request, exception):
+    return render(request, 'home/404.html', status=404)
+
+def handler500(request):
+    return render(request, 'home/500.html', status=500)
+
+def handler403(request, exception):
+    return render(request, 'home/403.html', status=403)
+
+def handler400(request, exception):
+    return render(request, 'home/400.html', status=400)

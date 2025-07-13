@@ -4,7 +4,7 @@ from django.conf.urls.static import static
 from django.contrib.auth import views as auth_views
 from . import views
 from .api_urls import urlpatterns as api_urlpatterns
-from appFerremax.forms import ClientePasswordResetForm  # Form personalizado
+from appFerremax.forms import ClientePasswordResetForm
 
 urlpatterns = [
     path('', views.index, name='index'),
@@ -65,7 +65,6 @@ urlpatterns = [
     path('mis_pedidos/', views.mis_pedidos, name='mis_pedidos'),
     path('productos/', views.productos, name='productos'),
     path('productosapi/', views.productosapi, name='productosapi'),
-    path('test-404/', views.test_404, name='test_404'),
 ]
 
 urlpatterns += api_urlpatterns

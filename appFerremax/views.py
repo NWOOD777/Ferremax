@@ -1099,3 +1099,10 @@ def cambiar_contrasena_cliente(request, token):
         form = CambiarContrasenaForm()
 
     return render(request, 'home/recuperar_contra/contra_reset_form.html', {'form': form})
+
+
+
+from django.shortcuts import render
+
+def mi_pagina_404(request, exception):
+    return render(request, '404.html', status=404)
