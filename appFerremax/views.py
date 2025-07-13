@@ -9,7 +9,7 @@ import json
 from decimal import Decimal, InvalidOperation
 from datetime import date
 from .forms import ProductoForm
-
+from .forms import RegistroClienteForm
 from .models import Cargo, Cliente, Empleado, Sucursal, Producto, Pedido, DetalleProducto, MetodoPago, EstadoPago, Pago
 from .paypal_utils import crear_pago, ejecutar_pago
 
@@ -220,84 +220,25 @@ def bodeguero(request):
         'tipo_usuario': tipo_usuario
     })
 
-def registro(request):
+
+
+def registro_cliente(request):
+    errores = []
+    valores = {}
+
     if request.method == 'POST':
-        # Obtener datos del formulario
-        rut_cliente = request.POST.get('rut_cliente')
-        fecha_registro = request.POST.get('fecha_registro')
-        recibe_ofertas = request.POST.get('recibe_ofertas')
-        nombre_cliente = request.POST.get('nombre_cliente')
-        apellido_cliente = request.POST.get('apellido_cliente')
-        direccion = request.POST.get('direccion')
-        telefono_cliente = request.POST.get('telefono_cliente')
-        correo = request.POST.get('correo')
-        contrasena = request.POST.get('contrasena')
-        
-        # Guardar valores para relleno en caso de error
-        valores = {
-            'rut_cliente': rut_cliente,
-            'fecha_registro': fecha_registro,
-            'recibe_ofertas': recibe_ofertas,
-            'nombre_cliente': nombre_cliente,
-            'apellido_cliente': apellido_cliente,
-            'direccion': direccion,
-            'telefono_cliente': telefono_cliente,
-            'correo': correo
-        }
-        
-        # Validaciones
-        errores = []
-        
-        # Validar que todos los campos estén completos
-        if not all([rut_cliente, fecha_registro, recibe_ofertas, nombre_cliente, 
-                    apellido_cliente, direccion, telefono_cliente, correo, contrasena]):
-            errores.append('Todos los campos son obligatorios')
-        
-        # Validar formato de RUT (simple validación)
-        if not ('-' in rut_cliente and len(rut_cliente) >= 8 and len(rut_cliente) <= 12):
-            errores.append('El formato del RUT debe ser 12345678-9')
-            
-        # Validar que el RUT no exista ya
-        if not errores and Cliente.objects.filter(rut_cliente=rut_cliente).exists():
-            errores.append('El RUT ya está registrado')
-            
-        # Validar que el correo no exista ya
-        if not errores and Cliente.objects.filter(correo=correo).exists():
-            errores.append('El correo ya está registrado')
-            
-        # Si hay errores, volver al formulario
-        if errores:
-            return render(request, 'Home/registro.html', {'errores': errores, 'valores': valores})
-        
-        # Si no hay errores, crear el cliente
-        try:
-            nuevo_cliente = Cliente(
-                rut_cliente=rut_cliente,
-                fecha_registro=fecha_registro,
-                recibe_ofertas=recibe_ofertas,
-                nombre_cliente=nombre_cliente,
-                apellido_cliente=apellido_cliente,
-                direccion=direccion,
-                telefono_cliente=telefono_cliente,
-                correo=correo,
-                contrasena=contrasena
-            )
-            nuevo_cliente.save()
-            
-            # Autenticar al usuario recién registrado
-            request.session['nombre_usuario'] = nombre_cliente
-            request.session['tipo_usuario'] = 'cliente'
-            request.session['id_usuario'] = nuevo_cliente.rut_cliente  # Usando rut_cliente en lugar de id_cliente
-            request.session['correo'] = correo  # Guardar el correo para identificación única
-            
-            # Redirigir a la página principal
-            return redirect('index')
-        except Exception as e:
-            errores.append(f'Error al guardar: {str(e)}')
-            return render(request, 'Home/registro.html', {'errores': errores, 'valores': valores})
-    
-    # Si es GET, mostrar el formulario vacío
-    return render(request, 'Home/registro.html')
+        form = RegistroClienteForm(request.POST)
+        if form.is_valid():
+            form.save()
+            return redirect('inicio')  
+        else:
+            errores = form.errors
+            valores = request.POST
+    else:
+        form = RegistroClienteForm()
+
+    return render(request, 'home/registro.html', {'errores': errores, 'valores': valores})
+
 
 def carrito(request):
     # Get cart from session
@@ -1149,10 +1090,11 @@ def cambiar_contrasena_cliente(request, token):
         form = CambiarContrasenaForm(request.POST)
         if form.is_valid():
             nueva_contra = form.cleaned_data['nueva_contrasena']
-            cliente.contrasena = make_password(nueva_contra)  # Guarda la contraseña hasheada
+            cliente.contrasena = make_password(nueva_contra)
             cliente.save()
             messages.success(request, "Contraseña cambiada exitosamente. Ya puedes iniciar sesión.")
-            return redirect('inicio')  # O la página que uses para login
+
+            return redirect('cambiar_contrasena_cliente', token=token)
     else:
         form = CambiarContrasenaForm()
 

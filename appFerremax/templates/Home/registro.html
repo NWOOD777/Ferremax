@@ -8,6 +8,13 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        .error-text {
+            color: #d32f2f;
+            font-size: 0.9em;
+            margin-top: 4px;
+        }
+    </style>
 </head>
 <body>
     <div class="registro-container">
@@ -18,50 +25,93 @@
             </svg>
         </div>
         <h2>Registro de Cliente</h2>
+
+        {# Errores generales, todos listados arriba #}
         {% if errores %}
-            <div class="errores">
+            <div class="errores" style="margin-bottom: 15px;">
                 <ul style="margin:0;padding-left:18px;">
-                    {% for error in errores %}
-                        <li>{{ error }}</li>
+                    {% for campo, lista_errores in errores.items %}
+                        {% for error in lista_errores %}
+                            <li>{{ error }}</li>
+                        {% endfor %}
                     {% endfor %}
                 </ul>
             </div>
         {% endif %}
+
         <form method="post" autocomplete="off">
             {% csrf_token %}
+            
             <div class="input-group">
                 <input type="text" name="rut_cliente" placeholder="RUT (12345678-9)" maxlength="12" required value="{{ valores.rut_cliente|default:'' }}">
+                {% if errores.rut_cliente %}
+                    <div class="error-text">{{ errores.rut_cliente.0 }}</div>
+                {% endif %}
             </div>
+
             <div class="input-group">
                 <input type="date" name="fecha_registro" required value="{{ valores.fecha_registro|default:'' }}">
+                {% if errores.fecha_registro %}
+                    <div class="error-text">{{ errores.fecha_registro.0 }}</div>
+                {% endif %}
             </div>
+
             <div class="input-group">
                 <select name="recibe_ofertas" required>
                     <option value="">¿Recibe ofertas?</option>
                     <option value="S" {% if valores.recibe_ofertas == 'S' %}selected{% endif %}>Sí</option>
                     <option value="N" {% if valores.recibe_ofertas == 'N' %}selected{% endif %}>No</option>
                 </select>
+                {% if errores.recibe_ofertas %}
+                    <div class="error-text">{{ errores.recibe_ofertas.0 }}</div>
+                {% endif %}
             </div>
+
             <div class="input-group">
                 <input type="text" name="nombre_cliente" placeholder="Nombre" maxlength="20" required value="{{ valores.nombre_cliente|default:'' }}">
+                {% if errores.nombre_cliente %}
+                    <div class="error-text">{{ errores.nombre_cliente.0 }}</div>
+                {% endif %}
             </div>
+
             <div class="input-group">
                 <input type="text" name="apellido_cliente" placeholder="Apellido" maxlength="20" required value="{{ valores.apellido_cliente|default:'' }}">
+                {% if errores.apellido_cliente %}
+                    <div class="error-text">{{ errores.apellido_cliente.0 }}</div>
+                {% endif %}
             </div>
+
             <div class="input-group">
                 <input type="text" name="direccion" placeholder="Dirección" maxlength="50" required value="{{ valores.direccion|default:'' }}">
+                {% if errores.direccion %}
+                    <div class="error-text">{{ errores.direccion.0 }}</div>
+                {% endif %}
             </div>
+
             <div class="input-group">
-                <input type="text" name="telefono_cliente" placeholder="Teléfono" maxlength="20" required value="{{ valores.telefono_cliente|default:'' }}">
+                <input type="text" name="telefono_cliente" placeholder="Teléfono: 12345678" maxlength="8" required value="{{ valores.telefono_cliente|default:'' }}">
+                {% if errores.telefono_cliente %}
+                    <div class="error-text">{{ errores.telefono_cliente.0 }}</div>
+                {% endif %}
             </div>
+
             <div class="input-group">
                 <input type="email" name="correo" placeholder="Correo electrónico" maxlength="100" required value="{{ valores.correo|default:'' }}">
+                {% if errores.correo %}
+                    <div class="error-text">{{ errores.correo.0 }}</div>
+                {% endif %}
             </div>
+
             <div class="input-group">
                 <input type="password" name="contrasena" placeholder="Contraseña" minlength="8" maxlength="100" required>
+                {% if errores.contrasena %}
+                    <div class="error-text">{{ errores.contrasena.0 }}</div>
+                {% endif %}
             </div>
+
             <button type="submit" class="registro-btn">Registrarse</button>
         </form>
+
         <div class="register-link">
             ¿Ya tienes cuenta? <a href="{% url 'inicio' %}">Inicia sesión aquí</a>
         </div>
