@@ -38,7 +38,7 @@ urlpatterns = [
     path('mis_pedidos/', views.mis_pedidos, name='mis_pedidos'),
     path('productos/', views.productos, name='productos'),
     path('productosapi/', views.productosapi, name='productosapi'),
-    path('test-404/', views.vista_404_test, name='test_404'),
+    path('test-404/', views.test_404, name='test_404'),
 ] + api_urlpatterns
 
 urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

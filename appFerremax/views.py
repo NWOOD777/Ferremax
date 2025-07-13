@@ -893,6 +893,12 @@ def handler404(request, exception=None):
     """
     return render(request, '404.html', {'path': request.path}, status=404)
 
+def test_404(request):
+    """
+    Vista para probar la página 404 incluso con DEBUG=True
+    """
+    return handler404(request)
+
 def handler500(request):
     """
     Manejador personalizado para errores 500

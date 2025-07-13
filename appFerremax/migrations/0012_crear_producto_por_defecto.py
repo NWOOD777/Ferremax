@@ -11,8 +11,9 @@ def crear_producto_por_defecto(apps, schema_editor):
     Empleado = apps.get_model('appFerremax', 'Empleado')
     
     # Verificar si ya existen productos
-    if Producto.objects.exists():
-        return
+    # Comentamos esta validación para permitir crear el producto por defecto aunque ya existan otros
+    # if Producto.objects.exists():
+    #     return
     
     # Obtener la primera sucursal
     try:
@@ -53,11 +54,12 @@ def crear_producto_por_defecto(apps, schema_editor):
                 f.write(img_data)
         
         # Crear el producto por defecto
+        from decimal import Decimal
         Producto.objects.create(
             nombre_producto="Martillo profesional",
             descripcion="Martillo de carpintero con mango ergonómico y cabeza de acero reforzado",
             marca="Ferremax Tools",
-            precio_unitario=12990.00,
+            precio_unitario=Decimal('12990.00'),  # Usando Decimal explícito para consistencia
             stock_total=50,
             sucursal=sucursal,
             imagen=imagen_path,
