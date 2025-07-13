@@ -4,6 +4,7 @@ from django.conf.urls.static import static
 from django.contrib.auth import views as auth_views
 from . import views
 from .api_urls import urlpatterns as api_urlpatterns
+from appFerremax.forms import ClientePasswordResetForm  # Form personalizado
 
 urlpatterns = [
     path('', views.index, name='index'),
@@ -24,17 +25,17 @@ urlpatterns = [
     path('confirmacion_pedido/<int:id_pedido>/', views.confirmacion_pedido, name='confirmacion_pedido'),
     path('cambiar_estado_pedido/<int:id_pedido>/', views.cambiar_estado_pedido, name='cambiar_estado_pedido'),
 
-    # Recuperación de contraseña personalizada
+   
     path(
         'recuperar-contrasena/',
         auth_views.PasswordResetView.as_view(
+            form_class=ClientePasswordResetForm,  
             template_name='home/recuperar_contra/recuperar_contrasena.html',
-            email_template_name='home/recuperar_contra/correo_recuperacion.html',
-            subject_template_name='home/recuperar_contra/asunto_recuperacion.txt',
             success_url='/recuperar-contrasena/enviado/'
         ),
-        name='password_reset'  # nombre estándar para recuperación
+        name='password_reset'
     ),
+
 
     path(
         'recuperar-contrasena/enviado/',
@@ -44,22 +45,14 @@ urlpatterns = [
         name='password_reset_done'
     ),
 
+ 
     path(
-        'recuperar-contrasena/confirmar/<uidb64>/<token>/',
-        auth_views.PasswordResetConfirmView.as_view(
-            template_name='home/recuperar_contra/contra_reset_form.html',
-            success_url='/recuperar-contrasena/completado/'
-        ),
-        name='password_reset_confirm'
+        'recuperar-contrasena/confirmar/<str:token>/',
+        views.cambiar_contrasena_cliente,
+        name='cambiar_contrasena_cliente'
     ),
 
-    path(
-        'recuperar-contrasena/completado/',
-        auth_views.PasswordResetCompleteView.as_view(
-            template_name='home/recuperar_contra/contra_reset_done.html'
-        ),
-        name='password_reset_complete'
-    ),
+
 
     path('check_stock/', views.check_stock, name='check_stock'),
     path('api_dolar/', views.api_dolar, name='api_dolar'),

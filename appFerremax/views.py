@@ -28,6 +28,8 @@ def index(request):
         'total_items': total_items
     })
 
+from django.contrib.auth.hashers import check_password
+
 def inicio(request):
     if request.method == 'POST':
         correo = request.POST.get('correo')
@@ -36,33 +38,34 @@ def inicio(request):
         errores = []
         valores = {'correo': correo}
         
-        # Validaciones
+        # Validaciones básicas
         if not correo or not contrasena:
             errores.append('Todos los campos son obligatorios')
         
         if not errores:
-            # Primero intentamos autenticar como Cliente
+            # Intentar autenticar como Cliente
             try:
                 cliente = Cliente.objects.get(correo=correo)
-                if cliente.contrasena == contrasena:
+                # Usamos check_password para comparar la contraseña ingresada con el hash guardado
+                if check_password(contrasena, cliente.contrasena):
                     # Autenticación exitosa como cliente
                     request.session['nombre_usuario'] = cliente.nombre_cliente
                     request.session['tipo_usuario'] = 'cliente'
-                    request.session['id_usuario'] = cliente.rut_cliente  # Usando rut_cliente en lugar de id_cliente
-                    request.session['correo'] = cliente.correo  # Guardar el correo para identificación única
+                    request.session['id_usuario'] = cliente.rut_cliente
+                    request.session['correo'] = cliente.correo
                     return redirect('index')
                 else:
                     errores.append('Contraseña incorrecta')
             except Cliente.DoesNotExist:
-                # Si no es cliente, intentamos con Empleado
+                # Intentar autenticar como Empleado
                 try:
                     empleado = Empleado.objects.get(correo=correo)
-                    if empleado.contrasena == contrasena:
+                    if check_password(contrasena, empleado.contrasena):
                         # Autenticación exitosa como empleado
                         request.session['nombre_usuario'] = empleado.nombre_empleado
                         request.session['tipo_usuario'] = empleado.cargo.nombre_cargo
                         request.session['id_usuario'] = empleado.id_empleado
-                        request.session['correo'] = empleado.correo  # Guardar el correo para identificación única
+                        request.session['correo'] = empleado.correo
                         return redirect('index')
                     else:
                         errores.append('Contraseña incorrecta')
@@ -72,6 +75,7 @@ def inicio(request):
         return render(request, 'Home/inicio.html', {'errores': errores, 'valores': valores})
                 
     return render(request, 'Home/inicio.html')
+
 
 def pedidos(request):
     if 'nombre_usuario' not in request.session:
@@ -1101,3 +1105,55 @@ def ejecutar_pago_ajax(request):
             'success': False,
             'error': f'Error al procesar la solicitud: {str(e)}'
         }, status=500)
+
+
+from django.shortcuts import render, redirect
+from django.contrib import messages
+from django.core import signing
+from appFerremax.models import Cliente
+from django.contrib.auth.hashers import make_password
+from django import forms
+
+# Formulario para cambiar contraseña con validación de confirmación
+class CambiarContrasenaForm(forms.Form):
+    nueva_contrasena = forms.CharField(
+        label="Nueva contraseña",
+        widget=forms.PasswordInput,
+        min_length=6,
+        required=True,
+    )
+    confirmar_contrasena = forms.CharField(
+        label="Confirmar contraseña",
+        widget=forms.PasswordInput,
+        required=True,
+    )
+
+    def clean(self):
+        cleaned_data = super().clean()
+        pw1 = cleaned_data.get("nueva_contrasena")
+        pw2 = cleaned_data.get("confirmar_contrasena")
+        if pw1 and pw2 and pw1 != pw2:
+            raise forms.ValidationError("Las contraseñas no coinciden.")
+        return cleaned_data
+
+def cambiar_contrasena_cliente(request, token):
+    try:
+        data = signing.loads(token)
+        correo = data.get('correo')
+        cliente = Cliente.objects.get(correo=correo)
+    except (signing.BadSignature, Cliente.DoesNotExist):
+        messages.error(request, "El enlace no es válido o ha expirado.")
+        return redirect('index')
+
+    if request.method == 'POST':
+        form = CambiarContrasenaForm(request.POST)
+        if form.is_valid():
+            nueva_contra = form.cleaned_data['nueva_contrasena']
+            cliente.contrasena = make_password(nueva_contra)  # Guarda la contraseña hasheada
+            cliente.save()
+            messages.success(request, "Contraseña cambiada exitosamente. Ya puedes iniciar sesión.")
+            return redirect('inicio')  # O la página que uses para login
+    else:
+        form = CambiarContrasenaForm()
+
+    return render(request, 'home/recuperar_contra/contra_reset_form.html', {'form': form})

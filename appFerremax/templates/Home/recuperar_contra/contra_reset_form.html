@@ -1,20 +1,20 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <title>Ingresa nueva contraseña</title>
+    <meta charset="UTF-8" />
+    <title>Cambiar contraseña</title>
     {% load static %}
-    <link rel="stylesheet" href="{% static 'CSS/inicio.css' %}">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'CSS/inicio.css' %}" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet" />
 </head>
 <body>
     <div class="login-container">
         <div class="logo">
             <svg width="90" height="90" viewBox="0 0 24 24" fill="none" class="user-logo-icon">
-                <circle cx="12" cy="8" r="5" fill="#111"/>
-                <path d="M12 14c-4 0-7 2-7 4.5V21h14v-2.5C19 16 16 14 12 14z" fill="#111"/>
+                <circle cx="12" cy="8" r="5" fill="#111" />
+                <path d="M12 14c-4 0-7 2-7 4.5V21h14v-2.5C19 16 16 14 12 14z" fill="#111" />
             </svg>
         </div>
 
@@ -22,8 +22,18 @@
         <form method="post" style="max-width: 400px; margin: auto;">
             {% csrf_token %}
             {{ form.as_p }}
-            <button type="submit" class="login-btn" style="width: 100%; margin-top: 15px;">Cambiar contraseña</button>
+            <button type="submit" class="login-btn" style="width: 100%; margin-top: 15px;">
+                Cambiar contraseña
+            </button>
         </form>
+
+        {% if messages %}
+            <ul class="messages" style="max-width: 400px; margin: auto; margin-top: 20px; color: red;">
+                {% for message in messages %}
+                    <li>{{ message }}</li>
+                {% endfor %}
+            </ul>
+        {% endif %}
     </div>
 </body>
 </html>

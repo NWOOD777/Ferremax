@@ -157,3 +157,9 @@ EMAIL_USE_TLS = True
 EMAIL_HOST_USER = 'azizoazoa@gmail.com'
 EMAIL_HOST_PASSWORD = 'ymqd pcgr arak mlxk' 
 DEFAULT_FROM_EMAIL = 'azizoazoa@gmail.com'
+
+
+
+CSRF_COOKIE_SECURE = False
+SESSION_COOKIE_SECURE = False
+CSRF_COOKIE_HTTPONLY = False
