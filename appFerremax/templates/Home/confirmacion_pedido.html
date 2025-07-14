@@ -112,10 +112,10 @@
             <div class="col-md-6">
                 <div class="order-info">
                     <h4 class="mb-3">Información de Pago</h4>
-                    <p><strong>Método de Pago:</strong> {{ pago.metodo_pago.nombre_metodo_pago }}</p>
-                    <p><strong>Estado del Pago:</strong> {{ pago.estado_pago.estado_pago }}</p>
+                    <p><strong>Método de Pago:</strong> PayPal</p>
+                    <p><strong>Estado:</strong> {{ pedido.estado_pedido }}</p>
                     <p><strong>ID de Transacción:</strong> {{ pedido.paypal_payment_id }}</p>
-                    <p><strong>Fecha de Pago:</strong> {{ pago.fecha|date:"d/M/Y" }}</p>
+                    <p><strong>Fecha de Pago:</strong> {{ pedido.fecha_pedido|date:"d/M/Y" }}</p>
                 </div>
             </div>
         </div>

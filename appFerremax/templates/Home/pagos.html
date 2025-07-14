@@ -64,37 +64,6 @@
                 </table>
             </div>
             <div class="section">
-                <h1>Registro de Pagos y Finanzas</h1>
-                <table id="tablaPagos">
-                    <thead>
-                        <tr>
-                            <th>#</th>
-                            <th>Fecha</th>
-                            <th>Pedido</th>
-                            <th>Método de Pago</th>
-                            <th>Estado</th>
-                            <th>Monto (CLP)</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for pago in pagos %}
-                        <tr>
-                            <td>{{ pago.id_pago }}</td>
-                            <td>{{ pago.fecha|date:"d/m/Y" }}</td>
-                            <td>{{ pago.pedido }}</td>
-                            <td>{{ pago.metodo_pago }}</td>
-                            <td>{{ pago.estado_pago }}</td>
-                            <td>CLP {{ pago.pedido.total|floatformat:0|stringformat:'s'|slice:':-3'|default:'0' }}.{{ pago.pedido.total|floatformat:0|stringformat:'s'|slice:'-3:' }}</td>
-                        </tr>
-                        {% empty %}
-                        <tr>
-                            <td colspan="6" class="no-data">No hay pagos registrados</td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-            <div class="section">
                 <h1>Balance y Reportes Financieros</h1>
                 <div class="balance" id="balanceReporte">
                     <h2 style="color: #2980b9; text-align: center; margin-bottom: 20px;">Reporte Financiero - Ferremax</h2>

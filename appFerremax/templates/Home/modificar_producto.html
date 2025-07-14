@@ -27,18 +27,27 @@
                             </div>
                         </div>
 
-                        <form method="post" enctype="multipart/form-data">
+                        <form method="post" enctype="multipart/form-data" id="producto-form">
                             {% csrf_token %}
                             
                             {% for field in form %}
                             <div class="mb-3">
                                 <label for="{{ field.id_for_label }}" class="form-label">{{ field.label }}</label>
-                                {{ field }}
+
+                                {% if field.name == "precio_unitario" %}
+                                    <!-- Campo precio con formateo -->
+                                    <input type="text" name="precio_unitario" id="{{ field.id_for_label }}" 
+                                        value="{{ field.value }}" class="form-control" required>
+                                {% else %}
+                                    {{ field }}
+                                {% endif %}
+
                                 {% if field.errors %}
                                 <div class="text-danger">{{ field.errors }}</div>
                                 {% endif %}
                             </div>
                             {% endfor %}
+                            
                             <div class="row g-2">
                                 <div class="col-md-6 d-grid">
                                     <a href="{% url 'mis_productos' %}" class="btn btn-secondary btn-lg">
@@ -66,41 +75,29 @@
 
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    
+
     <script>
-    // Función para formatear números con separadores de miles
     document.addEventListener('DOMContentLoaded', function() {
         const precioInput = document.querySelector('input[name="precio_unitario"]');
-        
+        const form = document.getElementById('producto-form');
+
         if (precioInput) {
-            // Formatear inicialmente al cargar
+            // Formatear al cargar la página
             if (precioInput.value) {
-                const initialValue = precioInput.value.replace(/\./g, '').replace(',', '.');
-                if (!isNaN(parseFloat(initialValue))) {
-                    precioInput.value = parseFloat(initialValue).toLocaleString('es-CL');
-                }
+                precioInput.value = parseInt(precioInput.value.replace(/\D/g, '')).toLocaleString('es-CL');
             }
-            
-            // Formatear cuando el campo pierde el foco
-            precioInput.addEventListener('blur', function() {
-                const value = this.value.replace(/\./g, '').replace(',', '.');
-                if (value && !isNaN(parseFloat(value))) {
-                    const formattedValue = parseFloat(value).toLocaleString('es-CL');
-                    this.value = formattedValue;
-                }
-            });
-            
-            // Desformatear cuando el campo recibe el foco para edición
-            precioInput.addEventListener('focus', function() {
-                const value = this.value.replace(/\./g, '');
-                if (!isNaN(parseFloat(value.replace(',', '.')))) {
-                    this.value = value;
-                }
-            });
-            
-            // Asegurar que solo se ingresan números, puntos y comas
+
+            // Formatear al escribir
             precioInput.addEventListener('input', function() {
-                this.value = this.value.replace(/[^0-9.,]/g, '');
+                let valor = this.value.replace(/\D/g, '');
+                if (valor) {
+                    this.value = parseInt(valor).toLocaleString('es-CL');
+                }
+            });
+
+            // Antes de enviar el formulario, quitar formato
+            form.addEventListener('submit', function() {
+                precioInput.value = precioInput.value.replace(/\D/g, '');
             });
         }
     });

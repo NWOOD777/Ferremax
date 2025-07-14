@@ -13,7 +13,7 @@
                         <h1 class="text-center mb-0">Crear Producto</h1>
                     </div>
                     <div class="card-body">
-                        <form method="post" enctype="multipart/form-data">
+                        <form method="post" enctype="multipart/form-data" id="crear-producto-form">
                             {% csrf_token %}
                             
                             {% for field in form %}
@@ -22,10 +22,12 @@
                                     {{ field.label }}{% if field.name == "precio_unitario" %} (CLP){% endif %}
                                     {% if field.name == "imagen" %}<span class="text-danger">*</span>{% endif %}
                                 </label>
+
                                 {% if field.name == "precio_unitario" %}
                                 <div class="input-group">
                                     <span class="input-group-text">CLP $</span>
-                                    {{ field }}
+                                    <input type="text" name="precio_unitario" id="{{ field.id_for_label }}"
+                                           value="{{ field.value|default_if_none:'' }}" class="form-control" required>
                                 </div>
                                 {% elif field.name == "imagen" %}
                                 <div class="mb-0">{{ field }}</div>
@@ -39,9 +41,10 @@
                                 {% endif %}
                             </div>
                             {% endfor %}
-                              <div class="row g-2">
+
+                            <div class="row g-2">
                                 <div class="col-md-6 d-grid">
-                                    <a href="{% url 'pedidos' %}" class="btn btn-secondary btn-lg">Volver atras</a>
+                                    <a href="{% url 'pedidos' %}" class="btn btn-secondary btn-lg">Volver atrás</a>
                                 </div>
                                 <div class="col-md-6 d-grid">
                                     <button type="submit" class="btn btn-primary btn-lg">Guardar</button>
@@ -60,33 +63,29 @@
 
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    
+
     <script>
-    // Función para formatear números con separadores de miles
     document.addEventListener('DOMContentLoaded', function() {
         const precioInput = document.querySelector('input[name="precio_unitario"]');
-        
+        const form = document.getElementById('crear-producto-form');
+
         if (precioInput) {
-            // Formatear cuando el campo pierde el foco
-            precioInput.addEventListener('blur', function() {
-                const value = this.value.replace(/\./g, '').replace(',', '.');
-                if (value && !isNaN(parseFloat(value))) {
-                    const formattedValue = parseFloat(value).toLocaleString('es-CL');
-                    this.value = formattedValue;
-                }
-            });
-            
-            // Desformatear cuando el campo recibe el foco para edición
-            precioInput.addEventListener('focus', function() {
-                const value = this.value.replace(/\./g, '');
-                if (!isNaN(parseFloat(value.replace(',', '.')))) {
-                    this.value = value;
-                }
-            });
-            
-            // Asegurar que solo se ingresan números, puntos y comas
+            // Formatear al cargar si ya tiene valor
+            if (precioInput.value) {
+                precioInput.value = parseInt(precioInput.value.replace(/\D/g, '')).toLocaleString('es-CL');
+            }
+
+            // Formatear al escribir
             precioInput.addEventListener('input', function() {
-                this.value = this.value.replace(/[^0-9.,]/g, '');
+                let valor = this.value.replace(/\D/g, '');
+                if (valor) {
+                    this.value = parseInt(valor).toLocaleString('es-CL');
+                }
+            });
+
+            // Al enviar el formulario, quitar el formato
+            form.addEventListener('submit', function() {
+                precioInput.value = precioInput.value.replace(/\D/g, '');
             });
         }
     });
