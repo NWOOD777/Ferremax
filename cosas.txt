@@ -34,7 +34,7 @@ Paypal business
 
 Paypal cuenta personal:
     Email: sb-sa47r443287072@personal.example.com
-    Password: Vq8Y=buS
+    Password: 
 
 App
     Name: Ferremax
