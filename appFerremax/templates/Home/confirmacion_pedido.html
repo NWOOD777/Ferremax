@@ -112,10 +112,10 @@
             <div class="col-md-6">
                 <div class="order-info">
                     <h4 class="mb-3">Información de Pago</h4>
-                    <p><strong>Método de Pago:</strong> PayPal</p>
-                    <p><strong>Estado:</strong> {{ pedido.estado_pedido }}</p>
-                    <p><strong>ID de Transacción:</strong> {{ pedido.paypal_payment_id }}</p>
-                    <p><strong>Fecha de Pago:</strong> {{ pedido.fecha_pedido|date:"d/M/Y" }}</p>
+                    <p><strong>Método de Pago:</strong> {% if pago %}{{ pago.metodo_pago.nombre_metodo_pago }}{% else %}PayPal{% endif %}</p>
+                    <p><strong>Estado del Pago:</strong> {% if pago %}{{ pago.estado_pago.estado_pago }}{% else %}Completado{% endif %}</p>
+                    <p><strong>ID de Transacción:</strong> {{ pedido.paypal_payment_id|default:"No disponible" }}</p>
+                    <p><strong>Fecha de Pago:</strong> {% if pago %}{{ pago.fecha|date:"d/M/Y" }}{% else %}{{ pedido.fecha_pedido|date:"d/M/Y" }}{% endif %}</p>
                 </div>
             </div>
         </div>
@@ -153,7 +153,7 @@
                 <div class="col-md-6">
                     <div class="d-flex justify-content-between mb-2">
                         <span>Subtotal:</span>
-                        <span>${{ subtotal|floatformat:0 }}</span>
+                        <span>${{ subtotal|default:pedido.total|floatformat:0 }}</span>
                     </div>
                     
                     {% if descuento > 0 %}

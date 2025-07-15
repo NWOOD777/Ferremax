@@ -12,6 +12,18 @@ from .forms import ProductoForm
 from .forms import RegistroClienteForm
 from .models import Cargo, Cliente, Empleado, Sucursal, Producto, Pedido, DetalleProducto, MetodoPago, EstadoPago, Pago
 from .paypal_utils import crear_pago, ejecutar_pago
+from django.contrib.auth.hashers import check_password
+import json
+from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_POST
+from .models import Cliente, Producto, Pedido, DetalleProducto
+from django.shortcuts import render, redirect
+from django.contrib import messages
+from django.core import signing
+from appFerremax.models import Cliente
+from django.contrib.auth.hashers import make_password
+from django import forms
+from django.shortcuts import render
 
 # Create your views here.
 def index(request):
@@ -27,8 +39,6 @@ def index(request):
         'productos': productos,
         'total_items': total_items
     })
-
-from django.contrib.auth.hashers import check_password
 
 def inicio(request):
     if request.method == 'POST':
@@ -75,7 +85,6 @@ def inicio(request):
         return render(request, 'Home/inicio.html', {'errores': errores, 'valores': valores})
                 
     return render(request, 'Home/inicio.html')
-
 
 def pedidos(request):
     if 'nombre_usuario' not in request.session:
@@ -220,8 +229,6 @@ def bodeguero(request):
         'tipo_usuario': tipo_usuario
     })
 
-
-
 def registro_cliente(request):
     errores = []
     valores = {}
@@ -238,7 +245,6 @@ def registro_cliente(request):
         form = RegistroClienteForm()
 
     return render(request, 'home/registro.html', {'errores': errores, 'valores': valores})
-
 
 def carrito(request):
     # Get cart from session
@@ -862,11 +868,6 @@ def handler400(request, exception=None):
     """
     return render(request, '404.html', {'path': request.path, 'error_type': '400 - Solicitud Incorrecta'}, status=400)
 
-import json
-from django.views.decorators.csrf import csrf_exempt
-from django.views.decorators.http import require_POST
-from .models import Cliente, Producto, Pedido, DetalleProducto
-
 @csrf_exempt
 @require_POST
 def ejecutar_pago_ajax(request):
@@ -1047,14 +1048,6 @@ def ejecutar_pago_ajax(request):
             'error': f'Error al procesar la solicitud: {str(e)}'
         }, status=500)
 
-
-from django.shortcuts import render, redirect
-from django.contrib import messages
-from django.core import signing
-from appFerremax.models import Cliente
-from django.contrib.auth.hashers import make_password
-from django import forms
-
 # Formulario para cambiar contraseña con validación de confirmación
 class CambiarContrasenaForm(forms.Form):
     nueva_contrasena = forms.CharField(
@@ -1099,10 +1092,6 @@ def cambiar_contrasena_cliente(request, token):
         form = CambiarContrasenaForm()
 
     return render(request, 'home/recuperar_contra/contra_reset_form.html', {'form': form})
-
-
-
-from django.shortcuts import render
 
 def mi_pagina_404(request, exception):
     return render(request, '404.html', status=404)
